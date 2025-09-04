@@ -1,0 +1,367 @@
+<section class="new-ticket">
+  <style>
+    /* —— Theme (contraste) —— */
+    :root{
+      --card-bg:#f7faff; --card-border:#dbeafe; --field-bg:#ffffff; --field-border:#cbd5e1;
+      --field-border-focus:#60a5fa; --hint:#64748b; --title:#1f2937;
+    }
+    /* —— Layout general —— */
+    .nt-grid{display:grid;gap:20px}
+    @media(min-width:992px){.nt-grid{grid-template-columns:1fr 360px}}
+    .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:18px}
+    .card h1,.card h2{margin:0 0 12px;font-size:20px;color:var(--title)}
+    .divider{border:0;height:1px;background:#eef2ff;margin:24px 0}
+    /* —— Form —— */
+    .form-grid{display:grid;gap:14px}
+    .field label{display:block;font-weight:600;margin-bottom:6px;color:#334155}
+    .field input[type="text"], .field input[type="tel"], .field textarea, .field select, .field input[type="search"]{
+      width:100%;box-sizing:border-box;border:1px solid var(--field-border);
+      border-radius:10px;padding:10px 12px;background:var(--field-bg);font-size:14px;outline:none
+    }
+    .field input:focus,.field textarea:focus,.field select:focus{
+      border-color:var(--field-border-focus);box-shadow:0 0 0 3px rgba(59,130,246,.15);background:#fff
+    }
+    .hint{color:var(--hint);font-size:12px;margin-top:4px}
+    .char{font-size:12px;margin-top:4px}
+    .char.ok{color:#16a34a}.char.warn{color:#b91c1c}
+    .actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+    .btn{display:inline-block;border:1px solid transparent;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+    .btn-primary{background:#2563eb;color:#fff}.btn-secondary{background:#eef2f7;color:#334155;border-color:#e2e8f0}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .alert{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;margin-bottom:12px}
+    /* —— FAQ —— */
+    .faq-header{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+    #faq-card{position:relative}
+    @media(min-width:992px){#faq-card{position:sticky;top:20px}}
+    .faq-list{display:flex;flex-direction:column;gap:8px}
+    .faq-item{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff}
+    .faq-title{width:100%;text-align:left;background:#f8fafc;padding:10px 12px;border:0;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .faq-content{display:none;padding:10px 12px;background:#fff}
+    .faq-steps{margin:0 0 0 18px;padding:0}
+    .faq-empty{padding:10px 12px;color:#64748b}
+    .note-inline{font-size:12px;color:#64748b;margin-left:6px}
+    .badge{display:inline-block;font-size:12px;padding:4px 8px;border-radius:999px;background:#e0e7ff;color:#1f2937;border:1px solid #c7d2fe}
+  </style>
+
+  <div class="nt-grid">
+    <!-- —— Columna izquierda: formulario —— -->
+    <section class="card">
+      <h1>Nuevo Ticket</h1>
+      <% if (error) { %><div class="alert"><%= error %></div><% } %>
+
+      <form method="post" class="form-grid" id="ticket-form" novalidate>
+        <!-- Nombre de quien levanta -->
+        <div class="field">
+          <label for="creator_name">Nombre de quien levanta el ticket *</label>
+          <input id="creator_name" type="text" name="creator_name"
+                 placeholder="Nombre y apellidos"
+                 value="<%= typeof creatorName !== 'undefined' ? creatorName : '' %>"
+                 required minlength="3" maxlength="120" autocomplete="name">
+        </div>
+
+        <!-- Teléfono (opcional) -->
+        <div class="field">
+          <label for="contact_phone">Teléfono de contacto (opcional)</label>
+          <input id="contact_phone" type="tel" name="contact_phone"
+                 inputmode="tel" maxlength="25"
+                 placeholder="Ej. 442 123 4567"
+                 value="<%= typeof contactPhone !== 'undefined' ? contactPhone : '' %>">
+          <div class="hint">Puede incluir espacios, guiones o paréntesis.</div>
+        </div>
+
+        <!-- Departamento -->
+        <div class="field">
+          <label for="department_id">Departamento *</label>
+          <select name="department_id" id="department_id" required>
+            <option value="">— Selecciona —</option>
+            <% departments.forEach(d => { %>
+              <option value="<%= d.id %>" <%= String(d.id) === String(selectedDepartment) ? 'selected' : '' %>><%= d.name %></option>
+            <% }) %>
+          </select>
+          <span id="dep-note" class="note-inline"></span>
+          <div class="hint">El ticket se asignará automáticamente al equipo de este departamento.</div>
+        </div>
+
+        <!-- Asunto (forzado desde lista por departamento) -->
+        <div class="field">
+          <label for="subject_select">Asunto *</label>
+          <select id="subject_select" required disabled>
+            <option value="">— Selecciona un departamento primero —</option>
+          </select>
+          <!-- oculto: el backend sigue recibiendo "subject" -->
+          <input id="subject" type="hidden" name="subject"
+                 value="<%= typeof subject !== 'undefined' ? subject : '' %>">
+          <div class="hint">Elige el asunto de la lista del departamento.</div>
+        </div>
+
+        <!-- Descripción -->
+        <div class="field">
+          <label for="description">Descripción *</label>
+          <textarea id="description" name="description" rows="6" required maxlength="2000"
+            placeholder="Describe qué pasó, desde cuándo, a cuántas personas afecta y qué ya intentaste…"><%= typeof description !== 'undefined' ? description : '' %></textarea>
+          <div class="char" id="desc-count"></div>
+        </div>
+
+        <!-- Categoría (auto) -->
+        <div class="field">
+          <label>Categoría detectada</label>
+          <div id="category_badge" class="badge">General</div>
+          <input type="hidden" id="category" name="category" value="<%= typeof category !== 'undefined' ? category : 'General' %>">
+          <div class="hint">Se define por el asunto/dep.</div>
+        </div>
+
+        <!-- Urgencia (auto) -->
+        <div class="field">
+          <label>Urgencia</label>
+          <div id="urgency_badge" class="badge">MEDIA</div>
+          <input type="hidden" id="urgency" name="urgency" value="MEDIA">
+          <div class="hint">Se establece al elegir el asunto.</div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="btn-submit">Crear ticket</button>
+          <button type="reset" class="btn btn-secondary">Limpiar</button>
+          <a href="/tickets" class="btn btn-secondary">Cancelar</a>
+        </div>
+      </form>
+    </section>
+
+    <!-- —— Columna derecha: soluciones frecuentes —— -->
+    <section class="card" id="faq-card" style="display:none;">
+      <div class="faq-header">
+        <h2>Soluciones frecuentes</h2>
+        <input id="faq-search" type="search" placeholder="Buscar en soluciones…"/>
+      </div>
+      <div id="faq-list" class="faq-list"></div>
+    </section>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- Catálogo de tickets por departamento + Soluciones -->
+  <script src="/js/tickets_catalog.js"></script>
+  <script src="/js/solutions.js"></script>
+
+  <script>
+    (function () {
+      // —— Helpers
+      const $ = s => document.querySelector(s);
+      const subjectHidden = $('#subject');          // input oculto que manda al backend
+      const subjectSel    = $('#subject_select');   // select visible
+      const desc = $('#description');
+      const descCount = $('#desc-count');
+      const form = $('#ticket-form');
+      const btn = $('#btn-submit');
+      const dep = document.getElementById('department_id');
+      const depNote = document.getElementById('dep-note');
+      const creator = document.getElementById('creator_name');
+      const phone = document.getElementById('contact_phone');
+      const catHidden = document.getElementById('category');
+      const catBadge = document.getElementById('category_badge');
+      const urgencyHidden = document.getElementById('urgency');
+      const urgencyBadge  = document.getElementById('urgency_badge');
+
+      // —— Reglas fallback por palabras/dep (si no hay match en catálogo)
+      const CATEGORY_BY_KEYWORD = [
+        { re: /(impresora|printer|toner)/i, category:'Impresión' },
+        { re: /(correo|email|outlook)/i, category:'Correo' },
+        { re: /(acceso|usuario|contrase(ña|na)|password|login)/i, category:'Accesos' },
+        { re: /(sap|retail|sistema|software|licencia)/i, category:'Software' },
+        { re: /(internet|red|wifi|switch|router|cable)/i, category:'Red' },
+        { re: /(pc|equipo|teclado|mouse|monitor)/i, category:'Hardware' },
+        { re: /(compra|pedido|cotizaci[oó]n|proveedor)/i, category:'Compras' }
+      ];
+      const CATEGORY_BY_DEPT = { 'SISTEMAS':'Soporte', 'CEDIS':'Logística', 'COMPRAS':'Compras' };
+
+      // —— Utilidades de UI
+      function setCategory(cat){
+        catHidden.value = cat;
+        catBadge.textContent = cat;
+      }
+      function setUrgency(u){
+        urgencyHidden.value = u || 'MEDIA';
+        urgencyBadge.textContent = urgencyHidden.value;
+      }
+
+      // —— Cargar asuntos del catálogo según departamento
+      function fillSubjectsForDept() {
+        const deptName = dep.options[dep.selectedIndex]?.text || '';
+        const list = window._TK_getDeptList ? window._TK_getDeptList(deptName) : [];
+
+        subjectSel.innerHTML = '';
+        if (!list.length) {
+          subjectSel.disabled = true;
+          subjectSel.innerHTML = `<option value="">— Sin catálogo para este depto —</option>`;
+          subjectHidden.value = '';
+          setCategory('General');
+          setUrgency('MEDIA');
+          return;
+        }
+
+        subjectSel.disabled = false;
+        subjectSel.appendChild(new Option('— Selecciona —', ''));
+        list.forEach(it => {
+          const opt = new Option(it.subject, it.subject);
+          opt.dataset.category = it.category;
+          opt.dataset.urgency  = it.urgency;
+          subjectSel.appendChild(opt);
+        });
+
+        // Si venía algo cargado del servidor, intenta preseleccionarlo
+        const prev = (subjectHidden.value || '').trim();
+        if (prev) {
+          const found = [...subjectSel.options].find(o => o.value === prev);
+          if (found) subjectSel.value = prev;
+        }
+        applySubjectSelection();
+      }
+
+      // —— Sincroniza al elegir asunto
+      function applySubjectSelection(){
+        const opt = subjectSel.selectedOptions[0];
+        if (!opt || !opt.value) {
+          subjectHidden.value = '';
+          setCategory(detectCategory()); // fallback
+          setUrgency('MEDIA');
+          return;
+        }
+        subjectHidden.value = opt.value;                         // lo que enviará el backend
+        setCategory(opt.dataset.category || 'General');
+        setUrgency(opt.dataset.urgency  || 'MEDIA');
+      }
+
+      // —— Detecta categoría (prioriza catálogo)
+      function detectCategory(){
+        const opt = subjectSel.selectedOptions[0];
+        if (opt && opt.dataset.category) return opt.dataset.category;
+
+        // Fallback por keywords
+        const s = subjectHidden.value || '';
+        for(const rule of CATEGORY_BY_KEYWORD){
+          if(rule.re.test(s)){ return rule.category; }
+        }
+        // Fallback por depto
+        const depName = dep.options[dep.selectedIndex]?.text?.toUpperCase() || '';
+        if (CATEGORY_BY_DEPT[depName]) return CATEGORY_BY_DEPT[depName];
+
+        return 'General';
+      }
+
+      function renderCategory(){ setCategory(detectCategory()); }
+
+      // —— Contador + validación ligera
+      function updateCount(){
+        const len = desc.value.length;
+        const min = 20, max = desc.getAttribute('maxlength')|0;
+        const ok  = len >= min && len <= max;
+
+        const nameOk = (creator.value || '').trim().length >= 3;
+        const subjOk = !!subjectSel.value;   // asunto obligatorio desde select
+        const depOk  = !!dep.value;
+
+        descCount.textContent = `${len}/${max} caracteres` + (len < min ? ` · mínimo sugerido ${min}` : '');
+        descCount.className = 'char ' + (ok ? 'ok' : 'warn');
+
+        btn.disabled = !(ok && nameOk && subjOk && depOk);
+      }
+
+      // —— Eventos
+      dep.addEventListener('change', ()=>{
+        fillSubjectsForDept();
+        renderCategory();
+        renderFaq();
+        updateCount();
+      });
+
+      subjectSel.addEventListener('change', ()=>{
+        applySubjectSelection();
+        renderCategory();
+        updateCount();
+      });
+
+      // 🔧 faltantes para que el contador funcione en vivo
+      desc.addEventListener('input', updateCount);
+      creator.addEventListener('input', updateCount);
+
+      // Al limpiar el formulario, reestablecer y recalcular
+      form.addEventListener('reset', () => {
+        setTimeout(() => {
+          subjectSel.value = '';
+          subjectHidden.value = '';
+          setCategory('General');
+          setUrgency('MEDIA');
+          updateCount();
+        }, 0);
+      });
+
+      // —— Si el usuario sólo tiene 1 departamento, bloquear el select y mostrar nota
+      try{
+        const optionsCount = dep.querySelectorAll('option').length;
+        if(optionsCount === 2 && !dep.value){ dep.selectedIndex = 1; }
+        if(optionsCount === 2){ dep.disabled = true; depNote.textContent = 'Asignado por tu perfil'; }
+      }catch(e){}
+
+      // —— FAQ por departamento (accordion + búsqueda)
+      const faqCard = document.getElementById('faq-card');
+      const faqList = document.getElementById('faq-list');
+      const faqSearch = document.getElementById('faq-search');
+
+      function renderFaq() {
+        const key = (dep.options[dep.selectedIndex]?.text || '').trim().toLowerCase();
+        const dict = window.SOLUCIONES_FRECUENTES || {};
+        const data = Object.prototype.hasOwnProperty.call(dict, key)
+          ? dict[key]
+          : dict[Object.keys(dict).find(k => k.trim().toLowerCase() === key)] || [];
+
+        faqCard.style.display = (data && data.length) ? '' : 'none';
+        faqList.innerHTML = '';
+        if (!data || !data.length) return;
+
+        const q = (faqSearch.value || '').trim().toLowerCase();
+        const items = q
+          ? data.filter(it => (it.titulo||'').toLowerCase().includes(q) || (it.pasos||[]).some(p => (p||'').toLowerCase().includes(q)))
+          : data;
+
+        if (!items.length) {
+          faqList.innerHTML = `<div class="faq-empty">Sin coincidencias para “${faqSearch.value}”.</div>`;
+          return;
+        }
+
+        items.forEach((it, idx) => {
+          const id = `faq-${idx}`;
+          const pasos = (it.pasos || []).map(p => `<li>${p}</li>`).join('');
+          const block = document.createElement('div');
+          block.className = 'faq-item';
+          block.innerHTML = `
+            <button class="faq-title" type="button" aria-expanded="${idx===0?'true':'false'}" aria-controls="${id}">
+              ${it.titulo}
+              <span class="chev">▾</span>
+            </button>
+            <div id="${id}" class="faq-content" style="display:${idx===0?'block':'none'}">
+              ${pasos ? `<ol class="faq-steps">${pasos}</ol>` : `<p>Sin pasos registrados.</p>`}
+            </div>`;
+          faqList.appendChild(block);
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.faq-title');
+        if (!btn) return;
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
+        btn.querySelector('.chev').textContent = expanded ? '▾' : '▴';
+        const content = btn.nextElementSibling;
+        content.style.display = expanded ? 'none' : 'block';
+      });
+
+      // —— Inicializar
+      renderFaq();
+      fillSubjectsForDept();     // llena lista si hay depto preseleccionado
+      applySubjectSelection();   // aplica categoría/urgencia si ya venían datos
+      renderCategory();
+      updateCount();
+      (document.getElementById('faq-search')||{}).addEventListener?.('input', renderFaq);
+    })();
+  </script>
+</section>

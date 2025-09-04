@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><%= title || 'CHC HelpDesk' %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    /* Paleta usada también en admin/users */
+    :root{
+      --panel-bg: #f8fbff;     /* muy claro, a juego con thead */
+      --panel-border: #dbeafe; /* mismo borde que thead */
+      --panel-text: #334155;   /* slate-700 */
+    }
+
+    .departments-grid{
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      gap:1rem; margin-top:2rem;
+    }
+    .department-card{
+      background:#eef2f8; border:1px solid var(--border); border-radius:10px;
+      padding:1.5rem; text-align:center; color:var(--text); text-decoration:none;
+      transition:background-color .2s,border-color .2s,transform .2s,box-shadow .2s;
+      box-shadow:0 2px 6px rgba(0,0,0,.06);
+    }
+    .department-card:hover{
+      background:#dbeafe; border-color:var(--primary);
+      transform:translateY(-3px); box-shadow:0 6px 14px rgba(0,0,0,.08);
+    }
+    .department-card:focus-visible{ outline:2px solid var(--primary); outline-offset:3px; }
+    .department-card i{ font-size:2rem; margin-bottom:.5rem; display:block; color:var(--primary); }
+    .department-card span{ font-size:1rem; font-weight:700; display:block; margin-top:.3rem; }
+
+    /* ===== Anuncios (alineado con estilos de administración) ===== */
+    .announce-card{
+      margin-top:24px;
+      background:var(--panel-bg);
+      border:1px solid var(--panel-border);
+      border-radius:12px;
+      padding:16px;
+      box-shadow:none; /* sin sombra para empatar con tablas del admin */
+    }
+    .announce-card h2{
+      margin:0 0 8px; font-size:1rem; color:var(--panel-text);
+    }
+    .announce-list{
+      list-style:none; margin:8px 0 0; padding:0; display:grid; gap:8px;
+    }
+    .announce-item{
+      padding:10px 12px;
+      background:#fff;
+      border:1px solid #eef2f7; /* similar a filas del admin */
+      border-radius:10px;
+    }
+    .announce-item strong{ color:var(--panel-text); }
+    .announce-meta{ color:#64748b; font-size:12px; margin:2px 0; }
+    .announce-empty{ color:#64748b; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h2>Selecciona un departamento</h2>
+    <p>Elige el área para levantar o consultar tickets.</p>
+
+    <div class="departments-grid">
+      <% departments.forEach(dep => { %>
+        <a href="/tickets/new?department=<%= dep.id %>" class="department-card">
+          <%
+            let iconClass = 'fa-building';
+            if (dep.name.toLowerCase().includes('sistema')) iconClass = 'fa-desktop';
+            if (dep.name.toLowerCase().includes('cedis'))   iconClass = 'fa-warehouse';
+            if (dep.name.toLowerCase().includes('compra'))  iconClass = 'fa-shopping-cart';
+            if (dep.name.toLowerCase().includes('manten'))  iconClass = 'fa-tools';
+          %>
+          <i class="fa-solid <%= iconClass %>"></i>
+          <span><%= dep.name %></span>
+        </a>
+      <% }) %>
+    </div>
+
+    <div style="margin-top:2rem;">
+      <a href="/tickets/new" class="btn btn-primary">Levantar ticket</a>
+    </div>
+
+    <!-- Anuncios -->
+    <section class="announce-card" id="ann-card">
+      <h2>Anuncios</h2>
+      <ul id="ann-list" class="announce-list">
+        <li class="announce-empty">Cargando anuncios…</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+  (async () => {
+    try {
+      // Trae SIEMPRE todos los anuncios (activos y vigentes) sin filtrar por departamento
+      const res = await fetch('/api/announcements?limit=5', { credentials: 'include' });
+      const data = res.ok ? await res.json() : [];
+
+      const ul = document.getElementById('ann-list');
+      ul.innerHTML = '';
+
+      if (!data.length) {
+        ul.innerHTML = '<li class="announce-empty">No hay anuncios por ahora.</li>';
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      data.forEach(a => {
+        const li = document.createElement('li');
+        li.className = 'announce-item';
+
+        const title = document.createElement('strong');
+        title.textContent = a.title;
+
+        const meta = document.createElement('div');
+        meta.className = 'announce-meta';
+        meta.textContent = (a.dept === 'ALL' ? 'Todos' : a.dept) + ' · ' + a.created_at;
+
+        const body = document.createElement('div');
+        body.textContent = a.body;
+
+        li.appendChild(title);
+        li.appendChild(meta);
+        li.appendChild(body);
+        frag.appendChild(li);
+      });
+      ul.appendChild(frag);
+    } catch (err) {
+      const ul = document.getElementById('ann-list');
+      ul.innerHTML = '<li class="announce-empty">No se pudieron cargar los anuncios.</li>';
+      console.error(err);
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><%= title || 'HelpDesk Soluciones CHC' %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    /* Dropdown sencillo por si no está en tu CSS global */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown > button {
+      background: transparent; border: none; color: inherit; cursor: pointer;
+      padding: 0; margin: 0 0 0 10px; font: inherit;
+    }
+    .dropdown-menu {
+      display: none; position: absolute; right: 0; top: 100%;
+      background: #0f172a; color: #e2e8f0; border-radius: 8px;
+      min-width: 220px; box-shadow: 0 10px 20px rgba(0,0,0,.25); overflow: hidden; z-index: 50;
+    }
+    .dropdown:hover .dropdown-menu { display: block; }
+    .dropdown-menu a {
+      display: block; padding: 10px 14px; text-decoration: none; color: inherit;
+    }
+    .dropdown-menu a:hover { background: #1e293b; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">HelpDesk Soluciones CHC</div>
+      <nav class="nav">
+        <% if (user) { %>
+          <a href="/dashboard" class="<%= path && path.startsWith('/dashboard') ? 'active' : '' %>">Inicio</a>
+          <a href="/tickets" class="<%= path && path.startsWith('/tickets') && !path.includes('/new') ? 'active' : '' %>">Tickets</a>
+          <a href="/tickets/new" class="<%= path === '/tickets/new' ? 'active' : '' %>">Nuevo</a>
+
+          <% if (user.role === 'admin') { %>
+          <a href="/admin/users" class="<%= path && path.startsWith('/admin') ? 'active' : '' %>">Administración</a>
+          <% } %>
+
+
+          <form method="post" action="/logout" class="logout-form">
+            <button type="submit">Cerrar sesión</button>
+          </form>
+        <% } else { %>
+          <a href="/login" class="<%= path === '/login' ? 'active' : '' %>">Login</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container content">
+    <%- body %>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <small>© <%= new Date().getFullYear() %> Cremería Hermanos Coronel — HelpDesk Soluciones CHC Ver. 0.61 Alpha</small>
+    </div>
+  </footer>
+</body>
+</html>

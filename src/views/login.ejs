@@ -1,0 +1,94 @@
+<style>
+  .login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px); /* Resta el alto de la barra y footer */
+  }
+
+  .login-card {
+    background: #0d1b2a;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 380px;
+  }
+
+  /* --- Logo --- */
+  .login-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  .login-logo img {
+    width: 160px;              /* tamaño base */
+    max-width: 70%;
+    height: auto;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .login-card h2 {
+    color: #fff;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .login-card label {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .login-card input {
+    width: 100%;
+    padding: 0.7rem;
+    margin-bottom: 1rem;
+    border: none;
+    border-radius: 5px;
+  }
+
+  .login-card button {
+    width: 100%;
+    padding: 0.8rem;
+    background: #3b82f6;
+    border: none;
+    color: white;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .login-card .hint {
+    font-size: 0.85rem;
+    color: #ddd;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+</style>
+
+<div class="login-wrapper">
+  <div class="login-card">
+
+    <!-- Logo -->
+    <div class="login-logo">
+      <img src="/img/atendesk-logochc.png" alt="AtenDesk CHC">
+    </div>
+
+    <h2>Iniciar sesión</h2>
+
+    <form method="post" action="/login">
+      <label for="username">Usuario</label>
+      <input type="text" id="username" name="username" placeholder="Usuario" required>
+
+      <label for="password">Contraseña</label>
+      <input type="password" id="password" name="password" placeholder="Contraseña" required>
+
+      <button type="submit">Entrar</button>
+
+      <p class="hint">
+        Si olvidaste tus accesos consulta con tu supervisor</p>
+    </form>
+  </div>
+</div>
