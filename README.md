@@ -5,9 +5,6 @@ Proyecto mínimo listo para VS Code: Express + MySQL + EJS.
 ## Requisitos
 - Node.js 18+
 - MySQL 8+ (o MariaDB 10+)
-- Base de datos creada con el script `soportebd_minimal.sql` (o el que te generé en el chat).
-
-## Instalación
 ```bash
 npm install
 copy .env.sample .env   # (en PowerShell: copy .env.sample .env)
