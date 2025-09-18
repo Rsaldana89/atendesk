@@ -1,4 +1,4 @@
-// app.js
+// src/app.js
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
@@ -7,17 +7,18 @@ const expressLayouts = require('express-ejs-layouts');
 dotenv.config();
 
 const { pool } = require('./db');
-const authRoutes = require('./routes/auth');
-const ticketRoutes = require('./routes/tickets');      // <- aquí va la lógica de /tickets/new (sin prerellenar)
-const dashboardRoutes = require('./routes/dashboard');
-const { requireAuth } = require('./middleware/auth');
+const authRoutes         = require('./routes/auth');
+const ticketRoutes       = require('./routes/tickets');       // /tickets/*
+const attachmentsRoutes  = require('./routes/attachments');   // /attachments/:id/*
+const dashboardRoutes    = require('./routes/dashboard');
+const { requireAuth }    = require('./middleware/auth');
 
-// 👉 Importamos rutas de administración
+// Administración
 const adminUsersRoutes = require('./routes/admin/users');
 
 const app = express();
 
-// Si corres detrás de proxy (Railway, etc.), habilita trust proxy
+// Proxy (Railway, etc.)
 if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
 
 // View engine
@@ -42,73 +43,55 @@ app.use(session({
   }
 }));
 
-// Locals disponibles en todas las vistas
+// Locals para todas las vistas
 app.use((req, res, next) => {
-  res.locals.user = req.session.user || null; // <- NO prerellena nombres, solo expone el usuario por si lo usas
+  res.locals.user = req.session.user || null;
   res.locals.path = req.path;
   next();
 });
 
-// Rutas principales
+/* ------------------------- Rutas principales ------------------------- */
 app.use('/', authRoutes);
 app.use('/dashboard', requireAuth, dashboardRoutes);
-app.use('/tickets', requireAuth, ticketRoutes); // <- el router define GET /new y POST /new sin defaults
+app.use('/tickets',   requireAuth, ticketRoutes);
 
-// 👉 Administración
+// 👇 Monta adjuntos SIN prefijo y protegido (las rutas dentro ya empiezan con /attachments/…)
+app.use(requireAuth, attachmentsRoutes);
+
+/* --------------------------- Administración -------------------------- */
 app.get('/admin', requireAuth, (req, res) => {
   return res.render('administracion', { title: 'Administración' });
 });
-
-// 👉 Subrutas de administración (ej. /admin/users)
 app.use('/admin', adminUsersRoutes);
 
-/* ------------------------------------------------------------------
-   ANUNCIOS (versión mínima)
-   - GET    /api/announcements?depts=CEDIS,Sistemas&limit=5
-            &include_inactive=1 (opcional)
-            &include_expired=1 (opcional)
-   - POST   /api/announcements     (solo admin/manager)
-   - PATCH  /api/announcements/:id (solo admin/manager)
-   - DELETE /api/announcements/:id (solo admin/manager)
--------------------------------------------------------------------*/
-
-// GET: anuncios (por defecto solo activos y vigentes)
+/* ------------------------------ API mini ----------------------------- */
+// GET anuncios
 app.get('/api/announcements', requireAuth, async (req, res) => {
   try {
     const depts = (req.query.depts || '')
       .split(',').map(s => s.trim()).filter(Boolean);
-
     const limit = Math.min(parseInt(req.query.limit || '5', 10) || 5, 100);
-
     const includeInactive = String(req.query.include_inactive || '') === '1';
     const includeExpired  = String(req.query.include_expired  || '') === '1';
 
     const whereParts = [];
     const params = [];
-
     if (!includeInactive) whereParts.push(`a.active = 1`);
     if (!includeExpired)  whereParts.push(`(a.until_date IS NULL OR a.until_date >= CURDATE())`);
-
     if (depts.length) {
       whereParts.push(`(a.dept = 'ALL' OR a.dept IN (${depts.map(() => '?').join(',')}))`);
       params.push(...depts);
     }
-
     const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
     const [rows] = await pool.query(
-      `SELECT
-         a.id,
-         a.dept,
-         a.title,
-         a.body,
-         a.active,
-         DATE_FORMAT(a.created_at,'%Y-%m-%d %H:%i') AS created_at,
-         DATE_FORMAT(a.until_date,'%Y-%m-%d')       AS until_date
-       FROM announcements a
-       ${where}
-       ORDER BY a.created_at DESC
-       LIMIT ?`,
+      `SELECT a.id, a.dept, a.title, a.body, a.active,
+              DATE_FORMAT(a.created_at,'%Y-%m-%d %H:%i') AS created_at,
+              DATE_FORMAT(a.until_date,'%Y-%m-%d')       AS until_date
+         FROM announcements a
+         ${where}
+         ORDER BY a.created_at DESC
+         LIMIT ?`,
       [...params, limit]
     );
 
@@ -119,7 +102,7 @@ app.get('/api/announcements', requireAuth, async (req, res) => {
   }
 });
 
-// POST: crear anuncio
+// POST anuncio
 app.post('/api/announcements', requireAuth, async (req, res) => {
   try {
     const user = req.session.user || {};
@@ -142,7 +125,7 @@ app.post('/api/announcements', requireAuth, async (req, res) => {
   }
 });
 
-// PATCH: activar/desactivar anuncio
+// PATCH activar/desactivar
 app.patch('/api/announcements/:id', requireAuth, async (req, res) => {
   try {
     const user = req.session.user || {};
@@ -156,10 +139,7 @@ app.patch('/api/announcements/:id', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Valor "active" inválido (0 o 1)' });
     }
 
-    const [result] = await pool.query(
-      `UPDATE announcements SET active=? WHERE id=?`,
-      [active, id]
-    );
+    const [result] = await pool.query(`UPDATE announcements SET active=? WHERE id=?`, [active, id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Anuncio no encontrado' });
 
     res.json({ ok: true });
@@ -169,7 +149,7 @@ app.patch('/api/announcements/:id', requireAuth, async (req, res) => {
   }
 });
 
-// DELETE: borrar anuncio
+// DELETE anuncio
 app.delete('/api/announcements/:id', requireAuth, async (req, res) => {
   try {
     const user = req.session.user || {};
@@ -188,15 +168,14 @@ app.delete('/api/announcements/:id', requireAuth, async (req, res) => {
   }
 });
 
-/* ------------------------------------------------------------------ */
-
-// Home redirect
+/* ------------------------------- Home ------------------------------- */
 app.get('/', (req, res) => {
   if (req.session.user) return res.redirect('/dashboard');
   return res.redirect('/login');
 });
 
-// 404
+/* ------------------------------- 404 -------------------------------- */
+// ¡Siempre lo último!
 app.use((req, res) => {
   res.status(404).render('404', { title: 'No encontrado' });
 });

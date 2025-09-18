@@ -1,3 +1,4 @@
+<!-- views/ticket_new.ejs -->
 <section class="new-ticket">
   <style>
     /* —— Theme (contraste) —— */
@@ -41,6 +42,9 @@
     .faq-empty{padding:10px 12px;color:#64748b}
     .note-inline{font-size:12px;color:#64748b;margin-left:6px}
     .badge{display:inline-block;font-size:12px;padding:4px 8px;border-radius:999px;background:#e0e7ff;color:#1f2937;border:1px solid #c7d2fe}
+    /* —— Evidencias —— */
+    .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+    .ev-thumb{width:100%;height:auto;border-radius:8px;border:1px solid #e5e7eb}
   </style>
 
   <div class="nt-grid">
@@ -49,7 +53,9 @@
       <h1>Nuevo Ticket</h1>
       <% if (error) { %><div class="alert"><%= error %></div><% } %>
 
-      <form method="post" class="form-grid" id="ticket-form" novalidate>
+      <!-- IMPORTANTE: action + enctype para enviar archivos -->
+      <form action="/tickets/new" method="post" enctype="multipart/form-data" class="form-grid" id="ticket-form" novalidate>
+
         <!-- Nombre de quien levanta -->
         <div class="field">
           <label for="creator_name">Nombre de quien levanta el ticket *</label>
@@ -82,16 +88,33 @@
           <div class="hint">El ticket se asignará automáticamente al equipo de este departamento.</div>
         </div>
 
-        <!-- Asunto (forzado desde lista por departamento) -->
+        <!-- Categoría (por departamento) -->
+        <div class="field">
+          <label for="category_select">Categoría *</label>
+          <select id="category_select" required disabled>
+            <option value="">— Selecciona un departamento primero —</option>
+          </select>
+
+          <!-- oculto: el backend recibe "category" -->
+          <input type="hidden" id="category" name="category"
+                 value="<%= typeof category !== 'undefined' ? category : '' %>">
+
+          <div class="note-inline">
+            Elegida: <span id="category_badge" class="badge">—</span>
+          </div>
+          <div class="hint">Primero elige la categoría; después se habilitan los asuntos relacionados.</div>
+        </div>
+
+        <!-- Asunto (filtrado por categoría) -->
         <div class="field">
           <label for="subject_select">Asunto *</label>
           <select id="subject_select" required disabled>
-            <option value="">— Selecciona un departamento primero —</option>
+            <option value="">— Selecciona una categoría primero —</option>
           </select>
-          <!-- oculto: el backend sigue recibiendo "subject" -->
+          <!-- oculto: el backend recibe "subject" -->
           <input id="subject" type="hidden" name="subject"
                  value="<%= typeof subject !== 'undefined' ? subject : '' %>">
-          <div class="hint">Elige el asunto de la lista del departamento.</div>
+          <div class="hint">Elige el asunto relacionado con la categoría seleccionada.</div>
         </div>
 
         <!-- Descripción -->
@@ -102,20 +125,25 @@
           <div class="char" id="desc-count"></div>
         </div>
 
-        <!-- Categoría (auto) -->
-        <div class="field">
-          <label>Categoría detectada</label>
-          <div id="category_badge" class="badge">General</div>
-          <input type="hidden" id="category" name="category" value="<%= typeof category !== 'undefined' ? category : 'General' %>">
-          <div class="hint">Se define por el asunto/dep.</div>
-        </div>
-
         <!-- Urgencia (auto) -->
         <div class="field">
           <label>Urgencia</label>
           <div id="urgency_badge" class="badge">MEDIA</div>
           <input type="hidden" id="urgency" name="urgency" value="MEDIA">
           <div class="hint">Se establece al elegir el asunto.</div>
+        </div>
+
+        <!-- Evidencias (opcional, hasta 2) -->
+        <div class="field">
+          <label for="evidencias">Evidencias (opcional)</label>
+          <input id="evidencias" name="evidencias" type="file"
+                 accept="image/jpeg,image/png" multiple>
+          <div class="hint">
+            Puedes adjuntar hasta <strong>2</strong> fotos JPG o PNG (máx <strong>5 MB</strong> cada una).
+            Se optimizarán a JPG 800×600 al subirlas.
+          </div>
+          <div id="ev-errors" class="hint" style="color:#b91c1c;display:none"></div>
+          <div id="ev-preview" class="ev-grid" style="margin-top:8px"></div>
         </div>
 
         <!-- Acciones -->
@@ -148,7 +176,7 @@
       // —— Helpers
       const $ = s => document.querySelector(s);
       const subjectHidden = $('#subject');          // input oculto que manda al backend
-      const subjectSel    = $('#subject_select');   // select visible
+      const subjectSel    = $('#subject_select');   // select visible (asunto)
       const desc = $('#description');
       const descCount = $('#desc-count');
       const form = $('#ticket-form');
@@ -156,99 +184,206 @@
       const dep = document.getElementById('department_id');
       const depNote = document.getElementById('dep-note');
       const creator = document.getElementById('creator_name');
-      const phone = document.getElementById('contact_phone');
-      const catHidden = document.getElementById('category');
-      const catBadge = document.getElementById('category_badge');
+      const catHidden = document.getElementById('category');        // oculto para backend
+      const catBadge  = document.getElementById('category_badge');  // badge informativo
+      const catSel    = document.getElementById('category_select'); // select de categoría
       const urgencyHidden = document.getElementById('urgency');
       const urgencyBadge  = document.getElementById('urgency_badge');
+
+      // Evidencias (cliente)
+      const MAX_FILES_EV = 2;
+      const MAX_MB_EV = 5;
+      const evInput   = document.getElementById('evidencias');
+      const evPreview = document.getElementById('ev-preview');
+      const evErrors  = document.getElementById('ev-errors');
+
+      function clearPreview(){
+        if (!evPreview) return;
+        evPreview.innerHTML = '';
+        if (evErrors){ evErrors.style.display='none'; evErrors.textContent=''; }
+      }
+      function renderPreview(files){
+        clearPreview();
+        if (!evPreview) return;
+        const list = Array.from(files || []);
+        list.slice(0, MAX_FILES_EV).forEach(f => {
+          const url = URL.createObjectURL(f);
+          const img = document.createElement('img');
+          img.className = 'ev-thumb';
+          img.src = url;
+          img.onload = () => URL.revokeObjectURL(url);
+          evPreview.appendChild(img);
+        });
+      }
+      function evidenciasOk(){
+        if (!evInput) return true;
+        const files = evInput.files || [];
+        let ok = true, msgs = [];
+        if (files.length > MAX_FILES_EV) { ok=false; msgs.push(`Máximo ${MAX_FILES_EV} archivos.`); }
+        for (const f of files) {
+          if (!['image/jpeg','image/png'].includes(f.type)) { ok=false; msgs.push(`Formato no permitido: ${f.name}`); }
+          if (f.size > MAX_MB_EV * 1024 * 1024) { ok=false; msgs.push(`Muy pesado (${f.name}): > ${MAX_MB_EV} MB`); }
+        }
+        if (evErrors){
+          if (!ok) { evErrors.textContent = msgs.join(' '); evErrors.style.display=''; }
+          else { evErrors.style.display='none'; evErrors.textContent=''; }
+        }
+        return ok;
+      }
+      if (evInput){
+        evInput.addEventListener('change', ()=>{ renderPreview(evInput.files); updateCount(); });
+      }
 
       // —— Reglas fallback por palabras/dep (si no hay match en catálogo)
       const CATEGORY_BY_KEYWORD = [
         { re: /(impresora|printer|toner)/i, category:'Impresión' },
-        { re: /(correo|email|outlook)/i, category:'Correo' },
+        { re: /(correo|email|outlook)/i,    category:'Correo' },
         { re: /(acceso|usuario|contrase(ña|na)|password|login)/i, category:'Accesos' },
-        { re: /(sap|retail|sistema|software|licencia)/i, category:'Software' },
-        { re: /(internet|red|wifi|switch|router|cable)/i, category:'Red' },
-        { re: /(pc|equipo|teclado|mouse|monitor)/i, category:'Hardware' },
-        { re: /(compra|pedido|cotizaci[oó]n|proveedor)/i, category:'Compras' }
+        { re: /(sap|retail|sistema|software|licencia)/i,          category:'Software' },
+        { re: /(internet|red|wifi|switch|router|cable)/i,         category:'Red' },
+        { re: /(pc|equipo|teclado|mouse|monitor)/i,               category:'Hardware' },
+        { re: /(compra|pedido|cotizaci[oó]n|proveedor)/i,         category:'Compras' }
       ];
       const CATEGORY_BY_DEPT = { 'SISTEMAS':'Soporte', 'CEDIS':'Logística', 'COMPRAS':'Compras' };
 
       // —— Utilidades de UI
       function setCategory(cat){
-        catHidden.value = cat;
-        catBadge.textContent = cat;
+        catHidden.value = cat || '';
+        catBadge.textContent = cat || '—';
       }
       function setUrgency(u){
         urgencyHidden.value = u || 'MEDIA';
         urgencyBadge.textContent = urgencyHidden.value;
       }
 
-      // —— Cargar asuntos del catálogo según departamento
-      function fillSubjectsForDept() {
+      function getDeptList() {
         const deptName = dep.options[dep.selectedIndex]?.text || '';
-        const list = window._TK_getDeptList ? window._TK_getDeptList(deptName) : [];
+        return (window._TK_getDeptList ? window._TK_getDeptList(deptName) : []) || [];
+      }
+
+      // —— Helpers bloqueo depto + hidden espejo
+      function ensureDeptMirror(){
+        let m = form.querySelector('input[type="hidden"][name="department_id"]');
+        if(!m){
+          m = document.createElement('input');
+          m.type = 'hidden';
+          m.name = 'department_id';
+          form.appendChild(m);
+        }
+        m.value = dep.value || '';
+        return m;
+      }
+      function lockDeptSelect(reason){
+        if (dep.disabled) return;
+        dep.disabled = true;
+        depNote.textContent = reason || 'Departamento fijado';
+        ensureDeptMirror();
+        dep.blur();
+      }
+
+      // —— Cargar CATEGORÍAS únicas del catálogo según departamento
+      function fillCategoriesForDept() {
+        if (!dep.disabled && dep.value) { lockDeptSelect('Fijado'); }
+
+        const list = getDeptList();
+
+        // Reinicia Asunto
+        subjectSel.innerHTML = '';
+        subjectSel.disabled = true;
+        subjectSel.appendChild(new Option('— Selecciona una categoría primero —', ''));
+
+        // Llena Categorías
+        catSel.innerHTML = '';
+        if (!list.length) {
+          catSel.disabled = true;
+          catSel.appendChild(new Option('— Sin catálogo para este depto —', ''));
+          setCategory('');
+          setUrgency('MEDIA');
+          subjectHidden.value = '';
+          return;
+        }
+
+        const cats = [];
+        list.forEach(it => {
+          const c = (it.category || '').trim();
+          if (c && !cats.includes(c)) cats.push(c);
+        });
+
+        catSel.disabled = false;
+        catSel.appendChild(new Option('— Selecciona —', ''));
+        cats.forEach(c => catSel.appendChild(new Option(c, c)));
+
+        const prevCat = (catHidden.value || '').trim();
+        if (prevCat && cats.includes(prevCat)) {
+          catSel.value = prevCat;
+          fillSubjectsForCategory();
+        } else {
+          setCategory('');
+        }
+      }
+
+      // —— Llenar ASUNTOS según la categoría elegida
+      function fillSubjectsForCategory() {
+        const list = getDeptList();
+        const selCat = catSel.value;
 
         subjectSel.innerHTML = '';
-        if (!list.length) {
+        if (!selCat) {
           subjectSel.disabled = true;
-          subjectSel.innerHTML = `<option value="">— Sin catálogo para este depto —</option>`;
+          subjectSel.appendChild(new Option('— Selecciona una categoría primero —', ''));
           subjectHidden.value = '';
-          setCategory('General');
+          setUrgency('MEDIA');
+          return;
+        }
+
+        setCategory(selCat);
+
+        const items = list.filter(it => (it.category || '') === selCat);
+        if (!items.length) {
+          subjectSel.disabled = true;
+          subjectSel.appendChild(new Option('— No hay asuntos para esta categoría —', ''));
+          subjectHidden.value = '';
           setUrgency('MEDIA');
           return;
         }
 
         subjectSel.disabled = false;
         subjectSel.appendChild(new Option('— Selecciona —', ''));
-        list.forEach(it => {
+        items.forEach(it => {
           const opt = new Option(it.subject, it.subject);
           opt.dataset.category = it.category;
           opt.dataset.urgency  = it.urgency;
           subjectSel.appendChild(opt);
         });
 
-        // Si venía algo cargado del servidor, intenta preseleccionarlo
-        const prev = (subjectHidden.value || '').trim();
-        if (prev) {
-          const found = [...subjectSel.options].find(o => o.value === prev);
-          if (found) subjectSel.value = prev;
+        const prevSubj = (subjectHidden.value || '').trim();
+        if (prevSubj) {
+          const found = [...subjectSel.options].find(o => o.value === prevSubj);
+          if (found) subjectSel.value = prevSubj;
         }
         applySubjectSelection();
       }
 
-      // —— Sincroniza al elegir asunto
+      // —— Sincroniza al elegir ASUNTO
       function applySubjectSelection(){
         const opt = subjectSel.selectedOptions[0];
         if (!opt || !opt.value) {
           subjectHidden.value = '';
-          setCategory(detectCategory()); // fallback
           setUrgency('MEDIA');
+          if (!catSel.value) {
+            const s = subjectHidden.value || '';
+            for(const rule of CATEGORY_BY_KEYWORD){
+              if(rule.re.test(s)){ setCategory(rule.category); return; }
+            }
+            const depName = dep.options[dep.selectedIndex]?.text?.toUpperCase() || '';
+            setCategory(CATEGORY_BY_DEPT[depName] || 'General');
+          }
           return;
         }
-        subjectHidden.value = opt.value;                         // lo que enviará el backend
-        setCategory(opt.dataset.category || 'General');
+        subjectHidden.value = opt.value;
+        setCategory(catSel.value || opt.dataset.category || 'General');
         setUrgency(opt.dataset.urgency  || 'MEDIA');
       }
-
-      // —— Detecta categoría (prioriza catálogo)
-      function detectCategory(){
-        const opt = subjectSel.selectedOptions[0];
-        if (opt && opt.dataset.category) return opt.dataset.category;
-
-        // Fallback por keywords
-        const s = subjectHidden.value || '';
-        for(const rule of CATEGORY_BY_KEYWORD){
-          if(rule.re.test(s)){ return rule.category; }
-        }
-        // Fallback por depto
-        const depName = dep.options[dep.selectedIndex]?.text?.toUpperCase() || '';
-        if (CATEGORY_BY_DEPT[depName]) return CATEGORY_BY_DEPT[depName];
-
-        return 'General';
-      }
-
-      function renderCategory(){ setCategory(detectCategory()); }
 
       // —— Contador + validación ligera
       function updateCount(){
@@ -257,52 +392,79 @@
         const ok  = len >= min && len <= max;
 
         const nameOk = (creator.value || '').trim().length >= 3;
-        const subjOk = !!subjectSel.value;   // asunto obligatorio desde select
         const depOk  = !!dep.value;
+        const catOk  = !!catSel.value;
+        const subjOk = !!subjectSel.value;
 
         descCount.textContent = `${len}/${max} caracteres` + (len < min ? ` · mínimo sugerido ${min}` : '');
         descCount.className = 'char ' + (ok ? 'ok' : 'warn');
 
-        btn.disabled = !(ok && nameOk && subjOk && depOk);
+        // incluye validación de evidencias (si el usuario seleccionó archivos inválidos)
+        const evOk = evidenciasOk();
+
+        btn.disabled = !(ok && nameOk && depOk && catOk && subjOk && evOk);
       }
 
       // —— Eventos
       dep.addEventListener('change', ()=>{
-        fillSubjectsForDept();
-        renderCategory();
+        fillCategoriesForDept();
         renderFaq();
+        setUrgency('MEDIA');
+        updateCount();
+        if (!dep.disabled && dep.value) {
+          setTimeout(()=>lockDeptSelect('Fijado por tu selección'), 0);
+        }
+      });
+
+      dep.addEventListener('input', ()=>{
+        if (!dep.disabled && dep.value) {
+          setTimeout(()=>lockDeptSelect('Fijado por tu selección'), 0);
+        }
+      });
+
+      catSel.addEventListener('change', ()=>{
+        subjectSel.value = '';
+        subjectHidden.value = '';
+        setUrgency('MEDIA');
+        fillSubjectsForCategory();
         updateCount();
       });
 
       subjectSel.addEventListener('change', ()=>{
         applySubjectSelection();
-        renderCategory();
         updateCount();
       });
 
-      // 🔧 faltantes para que el contador funcione en vivo
+      // Contadores en vivo
       desc.addEventListener('input', updateCount);
       creator.addEventListener('input', updateCount);
 
-      // Al limpiar el formulario, reestablecer y recalcular
       form.addEventListener('reset', () => {
         setTimeout(() => {
-          subjectSel.value = '';
+          setCategory('');
           subjectHidden.value = '';
-          setCategory('General');
           setUrgency('MEDIA');
+          fillCategoriesForDept();
+          clearPreview();
           updateCount();
+          if (dep.disabled) { ensureDeptMirror(); }
         }, 0);
       });
 
-      // —— Si el usuario sólo tiene 1 departamento, bloquear el select y mostrar nota
+      // ✅ Sincroniza categoría y depto justo antes de enviar
+      form.addEventListener('submit', () => {
+        if (catSel && catSel.value) setCategory(catSel.value); // asegura hidden 'category'
+        ensureDeptMirror();                                    // asegura hidden 'department_id'
+      });
+
+      // —— Si el usuario sólo tiene 1 departamento, bloquear el select y crear hidden
       try{
         const optionsCount = dep.querySelectorAll('option').length;
-        if(optionsCount === 2 && !dep.value){ dep.selectedIndex = 1; }
-        if(optionsCount === 2){ dep.disabled = true; depNote.textContent = 'Asignado por tu perfil'; }
+        if (optionsCount === 2 && !dep.value) { dep.selectedIndex = 1; }
+        if (optionsCount === 2) { lockDeptSelect('Asignado por tu perfil'); }
       }catch(e){}
 
-      // —— FAQ por departamento (accordion + búsqueda)
+      // —— FAQ por departamento
       const faqCard = document.getElementById('faq-card');
       const faqList = document.getElementById('faq-list');
       const faqSearch = document.getElementById('faq-search');
@@ -357,9 +519,13 @@
 
       // —— Inicializar
       renderFaq();
-      fillSubjectsForDept();     // llena lista si hay depto preseleccionado
-      applySubjectSelection();   // aplica categoría/urgencia si ya venían datos
-      renderCategory();
+      if (dep.value) { lockDeptSelect('Fijado por selección previa'); }
+      fillCategoriesForDept();
+      if (catHidden.value) {
+        const opts = [...catSel?.options||[]];
+        const match = opts.find(o => o.value === catHidden.value);
+        if (match) { catSel.value = catHidden.value; fillSubjectsForCategory(); }
+      }
       updateCount();
       (document.getElementById('faq-search')||{}).addEventListener?.('input', renderFaq);
     })();

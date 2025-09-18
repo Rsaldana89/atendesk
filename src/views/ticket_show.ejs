@@ -1,0 +1,59 @@
+<section class="card" style="padding:18px">
+  <h1 style="margin:0 0 10px">Ticket #<%= t.id %> — <%= t.subject %></h1>
+  <!-- Controles de estado -->
+  <%- include('partials/ticket-status-controls', { t, userRole, userId }) %>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:900px">
+    <div>
+      <div><b>Departamento:</b> <%= t.department %></div>
+      <div><b>Categoría:</b> <%= t.category %></div>
+      <div><b>Estatus:</b> <%= t.status %></div>
+      <div><b>Abierto:</b> <%= new Date(t.opened_at).toLocaleString() %></div>
+      <% if (t.updated_at) { %>
+        <div><b>Actualizado:</b> <%= new Date(t.updated_at).toLocaleString() %></div>
+      <% } %>
+      <% if (t.closed_at) { %>
+        <div><b>Cerrado:</b> <%= new Date(t.closed_at).toLocaleString() %></div>
+      <% } %>
+    </div>
+    <div>
+      <div><b>Creado por:</b> <%= t.created_by_name %></div>
+      <% if (t.assigned_to_name) { %>
+        <div><b>Asignado a:</b> <%= t.assigned_to_name %></div>
+      <% } %>
+      <div><b>Reportante:</b> <%= t.creator_name %></div>
+      <% if (t.contact_phone) { %>
+        <div><b>Teléfono:</b> <%= t.contact_phone %></div>
+      <% } %>
+    </div>
+  </div>
+
+  <hr style="margin:16px 0;border:0;border-top:1px solid #e5e7eb"/>
+
+  <h3>Descripción</h3>
+  <p style="white-space:pre-wrap"><%= t.description %></p>
+
+  <% if (attachments && attachments.length) { %>
+    <hr style="margin:16px 0;border:0;border-top:1px solid #e5e7eb"/>
+    <h3>Evidencias</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+      <% attachments.forEach(a => { %>
+        <a href="/attachments/<%= a.id %>/raw" target="_blank" style="display:block">
+          <img src="/attachments/<%= a.id %>/thumb"
+               alt="Evidencia <%= a.seq %>"
+               style="width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px"/>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <!-- Historial de transiciones -->
+  <%- include('partials/ticket-history', { history, statusLabels }) %>
+
+  <div style="margin-top:16px">
+    <a class="btn btn-secondary" href="/tickets">← Volver al listado</a>
+  </div>
+</section>
+
+<!-- Script para manejo de transiciones -->
+<script src="/js/ticket-show.js" data-ticket-id="<%= t.id %>" data-root=""></script>

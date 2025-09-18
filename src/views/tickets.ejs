@@ -1,30 +1,85 @@
 <section class="card">
-  <h1>Tickets</h1>
-  <table class="table">
+  <div class="toolbar">
+    <h1>Tickets</h1>
+    <form method="get" class="search">
+      <input type="search" name="q"
+             placeholder="Buscar por ID, asunto, categoría, depto, estatus o reportante…"
+             value="<%= q || '' %>">
+      <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><% } %>
+      <% if (dir)  { %><input type="hidden" name="dir"  value="<%= dir %>"><% } %>
+      <button type="submit">Buscar</button>
+      <% if (q) { %><a class="clear" href="/tickets">Limpiar</a><% } %>
+    </form>
+  </div>
+
+  <table class="table sort">
     <thead>
       <tr>
-        <th>ID</th>
-        <th>Asunto</th>
-        <th>Departamento</th>
-        <th>Estatus</th>
-        <th>Abierto</th>
-        <th>Reportante</th>
+        <th>
+          <a href="?<%= qs({sort:'id',dir:dirFor('id')}) %>">
+            ID <%= sort==='id' ? (dir==='asc'?'▲':'▼') : '' %>
+          </a>
+        </th>
+        <th>
+          <a href="?<%= qs({sort:'subject',dir:dirFor('subject')}) %>">
+            Asunto <%= sort==='subject' ? (dir==='asc'?'▲':'▼') : '' %>
+          </a>
+        </th>
+        <th>
+          <a href="?<%= qs({sort:'category',dir:dirFor('category')}) %>">
+            Categoría <%= (sort==='category'||sort==='categoria') ? (dir==='asc'?'▲':'▼') : '' %>
+          </a>
+        </th>
+        <th>
+          <a href="?<%= qs({sort:'department',dir:dirFor('department')}) %>">
+            Departamento <%= (sort==='department'||sort==='departamento') ? (dir==='asc'?'▲':'▼') : '' %>
+          </a>
+        </th>
+        <th>
+          <a href="?<%= qs({sort:'status',dir:dirFor('status')}) %>">
+            Estatus <%= sort==='status' ? (dir==='asc'?'▲':'▼') : '' %>
+          </a>
+        </th>
+        <th>
+          <a href="?<%= qs({sort:'opened_at',dir:dirFor('opened_at')}) %>">
+            Abierto <%= (sort==='opened_at'||sort==='abierto') ? (dir==='asc'?'▲':'▼') : '' %>
+          </a>
+        </th>
+        <th>
+          <a href="?<%= qs({sort:'reporter',dir:dirFor('reporter')}) %>">
+            Reportante <%= (sort==='reporter'||sort==='reportante') ? (dir==='asc'?'▲':'▼') : '' %>
+          </a>
+        </th>
       </tr>
     </thead>
     <tbody>
-      <% if (tickets.length === 0) { %>
-        <tr><td colspan="6" class="empty">Sin tickets</td></tr>
-      <% } %>
-      <% tickets.forEach(t => { %>
+      <% if (!tickets || tickets.length === 0) { %>
+        <tr><td colspan="7" class="empty">Sin tickets</td></tr>
+      <% } else { tickets.forEach(t => { %>
         <tr>
-          <td><%= t.id %></td>
-          <td><%= t.subject %></td>
+          <td><a href="/tickets/<%= t.id %>"><%= t.id %></a></td>
+          <td><a href="/tickets/<%= t.id %>"><%= t.subject %></a></td>
+          <td><%= t.categoria %></td>
           <td><%= t.department %></td>
-          <td><%= t.status %></td>
+          <td>
+            <%= t.status %>
+            <% if (t.assigned_to_name) { %>
+              (<%= t.assigned_to_name %>)
+            <% } %>
+          </td>
           <td><%= new Date(t.opened_at).toLocaleString() %></td>
           <td><%= t.created_by_name %></td>
         </tr>
-      <% }) %>
+      <% }) } %>
     </tbody>
   </table>
 </section>
+
+<style>
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem}
+  .toolbar h1{margin:0}
+  .search{display:flex;gap:.5rem;align-items:center}
+  .search input[type="search"]{min-width:360px}
+  .table.sort th a{display:inline-block;text-decoration:none;color:inherit}
+  .empty{padding:1rem;text-align:center;color:#64748b}
+</style>

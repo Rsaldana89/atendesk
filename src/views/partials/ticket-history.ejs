@@ -1,0 +1,17 @@
+<h3 style="margin:16px 0 8px">Historial</h3>
+<div style="border:1px solid #e2e8f0;border-radius:8px;padding:8px">
+  <% if (!history || !history.length) { %>
+    <div style="color:#64748b">Sin movimientos.</div>
+  <% } else { %>
+    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px">
+      <% history.forEach(h => { %>
+        <li style="display:flex;gap:8px;align-items:baseline">
+          <span style="min-width:180px;color:#475569"><%= new Date(h.created_at).toLocaleString() %></span>
+          <span><b><%= (h.actor_role || '').toUpperCase() %></b></span>
+          <span>pasó de <b><%= statusLabels[h.from_status] %></b> a <b><%= statusLabels[h.to_status] %></b></span>
+          <% if (h.note) { %><span style="color:#475569">— <i><%= h.note %></i></span><% } %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>
