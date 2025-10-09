@@ -22,7 +22,7 @@ const adminUsersRoutes  = require('./routes/admin/users');
 const app = express();
 
 // Proxy (Railway, etc.)
-if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
+app.set('trust proxy', Number(process.env.TRUST_PROXY || 0));
 
 // View engine
 app.set('view engine', 'ejs');
@@ -36,16 +36,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'atendesk-dev-secret',
+  secret: process.env.SESSION_SECRET || 'dev_secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 8,
-    secure: Boolean(Number(process.env.COOKIE_SECURE || 0)),
-    sameSite: Boolean(Number(process.env.COOKIE_SECURE || 0)) ? 'none' : 'lax'
+    sameSite: 'lax',
+    secure: Boolean(Number(process.env.COOKIE_SECURE || 0)) // 1 en prod con HTTPS
   }
 }));
+
 // Helper para roles
 function requireRole(roles = []) {
   return (req, res, next) => {
