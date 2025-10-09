@@ -35,16 +35,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 🔐 Configuración de sesión compatible con local + Railway
+app.set('trust proxy', Number(process.env.TRUST_PROXY || 0)); // necesario en prod
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev_secret',
+  secret: process.env.SESSION_SECRET || 'atendesk-dev-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: Boolean(Number(process.env.COOKIE_SECURE || 0)) // 1 en prod con HTTPS
+    maxAge: 1000 * 60 * 60 * 8, // 8 horas
+    secure: Boolean(Number(process.env.COOKIE_SECURE || 0)), // 1 en prod
+    sameSite: Boolean(Number(process.env.COOKIE_SECURE || 0)) ? 'none' : 'lax' // "none" en Railway
   }
 }));
+
 
 // Helper para roles
 function requireRole(roles = []) {
