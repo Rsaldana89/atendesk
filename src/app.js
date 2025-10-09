@@ -22,7 +22,7 @@ const adminUsersRoutes  = require('./routes/admin/users');
 const app = express();
 
 // Proxy (Railway, etc.)
-app.set('trust proxy', Number(process.env.TRUST_PROXY || 0));
+if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
 
 // View engine
 app.set('view engine', 'ejs');
@@ -35,22 +35,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔐 Configuración de sesión compatible con local + Railway
-app.set('trust proxy', Number(process.env.TRUST_PROXY || 0)); // necesario en prod
-
 app.use(session({
   secret: process.env.SESSION_SECRET || 'atendesk-dev-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 8, // 8 horas
-    secure: Boolean(Number(process.env.COOKIE_SECURE || 0)), // 1 en prod
-    sameSite: Boolean(Number(process.env.COOKIE_SECURE || 0)) ? 'none' : 'lax' // "none" en Railway
+    maxAge: 1000 * 60 * 60 * 8,
+    secure: Boolean(Number(process.env.COOKIE_SECURE || 0)),
+    sameSite: Boolean(Number(process.env.COOKIE_SECURE || 0)) ? 'none' : 'lax'
   }
 }));
-
-
 // Helper para roles
 function requireRole(roles = []) {
   return (req, res, next) => {
