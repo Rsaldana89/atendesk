@@ -1,15 +1,64 @@
 <section class="card">
   <div class="toolbar">
-    <h1>Tickets</h1>
-    <form method="get" class="search">
-      <input type="search" name="q"
-             placeholder="Buscar por ID, asunto, categoría, depto, estatus o reportante…"
-             value="<%= q || '' %>">
-      <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><% } %>
-      <% if (dir)  { %><input type="hidden" name="dir"  value="<%= dir %>"><% } %>
-      <button type="submit">Buscar</button>
-      <% if (q) { %><a class="clear" href="/tickets">Limpiar</a><% } %>
-    </form>
+    <h1><%= listTitle || 'Tickets' %></h1>
+    <!-- Acciones de exportación / impresión para usuarios con permisos (admin, manager, agente) -->
+    <div class="actions-bar">
+      <form method="get" class="search" style="display:flex;gap:.5rem;align-items:center;margin:0">
+        <input type="search" name="q"
+               placeholder="Buscar por ID, asunto, categoría, depto, estatus o reportante…"
+               value="<%= q || '' %>">
+        <!-- Filtros de rango de fechas: del y al.  Se prellenan con los valores
+             calculados en el servidor (startDate y endDate).  Estos campos
+             permiten limitar los tickets mostrados al intervalo deseado. -->
+        <label class="date-filter">
+          <span class="sr-only">Desde</span>
+          <input type="date" name="start_date" value="<%= startDate %>" />
+        </label>
+        <label class="date-filter">
+          <span class="sr-only">Hasta</span>
+          <input type="date" name="end_date" value="<%= endDate %>" />
+        </label>
+        <% if (sort) { %><input type="hidden" name="sort" value="<%= sort %>"><% } %>
+        <% if (dir)  { %><input type="hidden" name="dir"  value="<%= dir %>"><% } %>
+        <button type="submit">Buscar</button>
+        <% if (q) { %>
+          <a class="clear" href="<%= listType === 'requested' ? '/tickets/requested' : '/tickets' %>">Limpiar</a>
+        <% } %>
+      </form>
+      <% // Muestra exportar/imprimir sólo para roles permitidos
+         const allowedExportRoles = ['admin','manager','agente'];
+         if (allowedExportRoles.includes(userRole)) { %>
+        <button id="btn-export" type="button" class="btn btn-secondary" style="white-space:nowrap">Exportar XLS</button>
+        <!-- Nuevo botón para exportar un reporte detallado con el historial completo de cada ticket -->
+        <button id="btn-export-detail" type="button" class="btn btn-secondary" style="white-space:nowrap">Exportar a detalle</button>
+        <!-- Nuevo botón para exportar únicamente los cambios de piezas (departamentos Mantenimiento y Sistemas) -->
+        <button id="btn-export-changes" type="button" class="btn btn-secondary" style="white-space:nowrap">Exportar cambios</button>
+        <button id="btn-print" type="button" class="btn btn-secondary" style="white-space:nowrap">Imprimir</button>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Filtros de estatus: permite ocultar/mostrar tickets por estado.
+       Por defecto se ocultan los tickets cancelados -->
+  <div class="status-filter">
+    <span class="muted">Mostrar:</span>
+    <%
+      const statusDisplay = {
+        abierto: 'Abierto',
+        en_progreso: 'En progreso',
+        solucionado: 'Solucionado',
+        reabierto: 'Reabierto',
+        cerrado: 'Cerrado',
+        cancelado: 'Cancelado'
+      };
+      const statusList = ['abierto','en_progreso','solucionado','reabierto','cerrado','cancelado'];
+    %>
+    <% statusList.forEach(st => { %>
+      <label class="status-option">
+        <input type="checkbox" class="status-checkbox" value="<%= st %>" <%= st === 'cancelado' ? '' : 'checked' %>>
+        <%= statusDisplay[st] %>
+      </label>
+    <% }) %>
   </div>
 
   <table class="table sort">
@@ -40,6 +89,7 @@
             Estatus <%= sort==='status' ? (dir==='asc'?'▲':'▼') : '' %>
           </a>
         </th>
+        <th>Atendiendo</th>
         <th>
           <a href="?<%= qs({sort:'opened_at',dir:dirFor('opened_at')}) %>">
             Abierto <%= (sort==='opened_at'||sort==='abierto') ? (dir==='asc'?'▲':'▼') : '' %>
@@ -54,32 +104,205 @@
     </thead>
     <tbody>
       <% if (!tickets || tickets.length === 0) { %>
-        <tr><td colspan="7" class="empty">Sin tickets</td></tr>
+        <tr><td colspan="8" class="empty">Sin tickets</td></tr>
       <% } else { tickets.forEach(t => { %>
-        <tr>
-          <td><a href="/tickets/<%= t.id %>"><%= t.id %></a></td>
-          <td><a href="/tickets/<%= t.id %>"><%= t.subject %></a></td>
+        <tr data-status="<%= t.status %>">
+          <td><a href="<%= listType === 'requested' ? ('/tickets/requested/' + t.id) : ('/tickets/' + t.id) %>"><%= t.id %></a></td>
+          <td><a href="<%= listType === 'requested' ? ('/tickets/requested/' + t.id) : ('/tickets/' + t.id) %>"><%= t.subject %></a></td>
           <td><%= t.categoria %></td>
           <td><%= t.department %></td>
           <td>
-            <%= t.status %>
-            <% if (t.assigned_to_name) { %>
-              (<%= t.assigned_to_name %>)
-            <% } %>
+            <span class="badge badge-<%= t.status %>"><%= String(t.status || '').replace('_',' ') %></span>
           </td>
+          <td><%= t.assigned_to_name || '—' %></td>
           <td><%= new Date(t.opened_at).toLocaleString() %></td>
           <td><%= t.created_by_name %></td>
         </tr>
       <% }) } %>
     </tbody>
   </table>
+
+  <script>
+  (function() {
+    // Filtra las filas según los checkboxes seleccionados
+    function filterRows() {
+      const active = Array.from(document.querySelectorAll('.status-checkbox'))
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+      document.querySelectorAll('tbody tr').forEach(row => {
+        const st = row.getAttribute('data-status');
+        row.style.display = active.includes(st) ? '' : 'none';
+      });
+    }
+    // Asigna eventos para actualizar la vista al cambiar filtros
+    document.querySelectorAll('.status-checkbox').forEach(cb => {
+      cb.addEventListener('change', filterRows);
+    });
+    // Aplica filtros iniciales (oculta cancelados por defecto)
+    filterRows();
+  })();
+  </script>
+
+  <!-- Script para exportar e imprimir lista -->
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Normaliza el rol del usuario para su uso en scripts
+    const userRole = '<%= userRole %>';
+
+    const btnExport = document.getElementById('btn-export');
+    const btnPrint  = document.getElementById('btn-print');
+    if (btnExport) {
+      btnExport.addEventListener('click', () => {
+        // Construir parámetros a partir del query actual y los checkboxes de estatus
+        const params = new URLSearchParams(window.location.search);
+        // Agregar tipo de lista (attend vs requested)
+        params.set('listType', '<%= listType %>');
+        // Estatus activos en la UI
+        const activeStatuses = Array.from(document.querySelectorAll('.status-checkbox'))
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+        if (activeStatuses.length && activeStatuses.length < 6) {
+          params.set('statuses', activeStatuses.join(','));
+        } else {
+          params.delete('statuses');
+        }
+        // Redirigir (nueva ventana) al export
+        const url = '/tickets/export?' + params.toString();
+        window.open(url, '_blank');
+      });
+    }
+    // Exportar reporte detallado (incluye historial de atenciones)
+    const btnExportDetail = document.getElementById('btn-export-detail');
+    if (btnExportDetail) {
+      btnExportDetail.addEventListener('click', () => {
+        const params = new URLSearchParams(window.location.search);
+        params.set('listType', '<%= listType %>');
+        const activeStatuses = Array.from(document.querySelectorAll('.status-checkbox'))
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+        if (activeStatuses.length && activeStatuses.length < 6) {
+          params.set('statuses', activeStatuses.join(','));
+        } else {
+          params.delete('statuses');
+        }
+        const url = '/tickets/exportDetailed?' + params.toString();
+        window.open(url, '_blank');
+      });
+    }
+    // Exportar cambios de piezas (solo para Sistemas y Mantenimiento)
+    const btnExportChanges = document.getElementById('btn-export-changes');
+    if (btnExportChanges) {
+      btnExportChanges.addEventListener('click', () => {
+        const params = new URLSearchParams(window.location.search);
+        params.set('listType', '<%= listType %>');
+        const activeStatuses = Array.from(document.querySelectorAll('.status-checkbox'))
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+        if (activeStatuses.length && activeStatuses.length < 6) {
+          params.set('statuses', activeStatuses.join(','));
+        } else {
+          params.delete('statuses');
+        }
+        const url = '/tickets/exportChanges?' + params.toString();
+        window.open(url, '_blank');
+      });
+    }
+    if (btnPrint) {
+      btnPrint.addEventListener('click', () => {
+        window.print();
+      });
+    }
+
+    // Ocultar el botón "Exportar cambios" a los managers que no pertenezcan a
+    // los departamentos de Sistemas o Mantenimiento.  Dado que el servidor no
+    // envía directamente el departamento del usuario, se determina de forma
+    // aproximada revisando las filas visibles en la tabla.  Si ninguna fila
+    // pertenece a dichos departamentos, se oculta la opción.  Los administradores
+    // y agentes siempre verán la opción.
+    if (userRole === 'manager') {
+      let hasSpecialDept = false;
+      document.querySelectorAll('tbody tr').forEach(row => {
+        // La columna de departamento es la cuarta celda (índice 3)
+        const deptCell = row.children[3];
+        if (!deptCell) return;
+        const deptName = deptCell.textContent.trim().toLowerCase();
+        if (deptName === 'sistemas' || deptName === 'mantenimiento') {
+          hasSpecialDept = true;
+        }
+      });
+      if (!hasSpecialDept) {
+        const btnChanges = document.getElementById('btn-export-changes');
+        if (btnChanges) btnChanges.style.display = 'none';
+      }
+    }
+  });
+  </script>
 </section>
 
 <style>
-  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem}
-  .toolbar h1{margin:0}
-  .search{display:flex;gap:.5rem;align-items:center}
-  .search input[type="search"]{min-width:360px}
+  /* Ajustar la barra superior para que pueda envolver sus contenidos en dos
+     líneas cuando el espacio horizontal sea limitado.  Se usa flex-wrap tanto
+     en la barra principal como en el contenedor de acciones para que los
+     botones de exportación se ajusten en la segunda fila si es necesario. */
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:0.5rem;
+    margin-bottom:.5rem;
+  }
+  .toolbar h1{
+    margin:0;
+    flex:1 1 100%;
+  }
+  /* La barra de acciones contiene el formulario de búsqueda y los botones.
+     Permite envoltura y usa gap coherente con la barra principal. */
+  .actions-bar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:0.5rem;
+    align-items:center;
+    flex:1 1 100%;
+  }
+  .search{
+    display:flex;
+    gap:.5rem;
+    align-items:center;
+    flex:1 1 auto;
+  }
+  .search input[type="search"]{
+    min-width:200px;
+    flex:1 1 auto;
+  }
+  /* Ajustes para los campos de fecha dentro del formulario de búsqueda */
+  .search .date-filter{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:0.1rem;
+    font-size:0.75rem;
+  }
+  .search .date-filter input[type="date"]{
+    font-size:0.875rem;
+    padding:0.25rem;
+    line-height:1.2;
+    max-width:10rem;
+  }
   .table.sort th a{display:inline-block;text-decoration:none;color:inherit}
   .empty{padding:1rem;text-align:center;color:#64748b}
+
+  /* Utilidad para ocultar elementos visualmente pero mantenerlos accesibles
+     para lectores de pantalla. */
+  .sr-only{
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
 </style>

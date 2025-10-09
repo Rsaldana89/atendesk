@@ -8,10 +8,9 @@ const STATES = {
   CANCELADO: 'cancelado',
 };
 
-// Canonical roles used throughout the application.  We normalise any
-// incoming role to these values.  Spanish role names such as
-// "agente" and "usuario" will be converted to their English
-// equivalents ("agent" and "user") in normRole().
+// Canonical roles used throughout the application.
+// Normalizamos los nombres de rol para evitar duplicidad
+// (ej. “agente” → “agent”, “usuario” → “user”).
 const ROLES = {
   ADMIN: 'admin',
   MANAGER: 'manager',
@@ -20,27 +19,43 @@ const ROLES = {
   SYSTEM: 'system'
 };
 
-// Matriz de transiciones permitidas (por rol)
+// Matriz de transiciones permitidas (por rol).
+// Se amplió para:
+// - permitir que los agentes también puedan cancelar,
+// - permitir que los managers puedan cerrar tickets solucionados,
+// - mantener la regla extra para managers/agentes creadores.
 const TRANSITIONS = {
   [STATES.ABIERTO]: {
+    // Aceptar: abierto → en_progreso
     [STATES.EN_PROGRESO]: [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT],
-    [STATES.CANCELADO]:   [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
+    // Cancelar: abierto → cancelado
+    [STATES.CANCELADO]:   [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.USER],
   },
   [STATES.EN_PROGRESO]: {
+    // Liberar: en_progreso → abierto
     [STATES.ABIERTO]:     [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT],
+    // Solucionar: en_progreso → solucionado
     [STATES.SOLUCIONADO]: [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT],
-    [STATES.CANCELADO]:   [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
+    // Cancelar: en_progreso → cancelado
+    [STATES.CANCELADO]:   [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.USER],
   },
   [STATES.SOLUCIONADO]: {
-    [STATES.CERRADO]:     [ROLES.ADMIN, ROLES.USER], // + auto-cierre (system)
+    // Cerrar: solucionado → cerrado
+    // 🔑 Ahora managers también pueden cerrar directamente
+    [STATES.CERRADO]:     [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER], // + auto-cierre (system)
+    // Reabrir: solucionado → reabierto
     [STATES.REABIERTO]:   [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.USER],
   },
   [STATES.REABIERTO]: {
+    // Retomar: reabierto → en_progreso
     [STATES.EN_PROGRESO]: [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT],
+    // Solucionar: reabierto → solucionado
     [STATES.SOLUCIONADO]: [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT],
-    [STATES.CANCELADO]:   [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
+    // Cancelar: reabierto → cancelado
+    [STATES.CANCELADO]:   [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.USER],
   },
   [STATES.CERRADO]: {
+    // Reabrir: cerrado → reabierto
     [STATES.REABIERTO]:   [ROLES.ADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.USER],
   },
   [STATES.CANCELADO]: { /* final */ },
@@ -56,18 +71,29 @@ const LABELS = {
 };
 
 function normRole(role = '') {
-  // Normalise role strings to canonical values.  Spanish role names are
-  // converted to English equivalents.
   const r = String(role || '').toLowerCase();
   if (r === 'agente' || r === 'agent') return 'agent';
   if (r === 'usuario' || r === 'user') return 'user';
   return r;
 }
 
-function canTransition(from, to, roleRaw) {
+function canTransition(from, to, roleRaw, ctx = {}) {
   const role = normRole(roleRaw);
   const allowed = TRANSITIONS[from]?.[to] || [];
-  return allowed.includes(role);
+  if (allowed.includes(role)) return true;
+
+  // Regla extra: permitir a agent/manager cerrar si son los creadores
+  if (
+    from === STATES.SOLUCIONADO &&
+    to === STATES.CERRADO &&
+    (role === ROLES.MANAGER || role === ROLES.AGENT) &&
+    ctx && ctx.ticket && ctx.userId &&
+    ctx.ticket.created_by === ctx.userId
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 // Calcula qué timestamps actualizar en cada transición

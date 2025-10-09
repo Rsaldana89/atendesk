@@ -24,35 +24,78 @@ body {
   padding: 1rem;
 }
 
+/* =========================
+   NAVBAR OSCURA CONSISTENTE
+   ========================= */
 .topbar {
-  border-bottom: 1px solid var(--border);
-  background: #dbeafe; /* Azul muy claro */
+  background: #0f172a;           /* oscuro */
+  color: #e2e8f0;                /* texto claro */
+  border-bottom: 1px solid #1e293b;
 }
 
-.brand { font-weight: 700; letter-spacing: .3px; }
+.brand {
+  font-weight: 700;
+  letter-spacing: .3px;
+  color: inherit;                /* toma el color claro de .topbar */
+}
 
 .nav {
   display: flex;
-  gap: .75rem;
+  gap: .5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
+/* Botones tipo píldora en la barra */
 .nav a,
 .logout-form button {
-  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .45rem .7rem;
+  border-radius: 999px;
   text-decoration: none;
-  background: transparent;
-  border: 1px solid var(--border);
-  padding: .4rem .7rem;
-  border-radius: .5rem;
+  background: #111827;           /* pastilla oscuro */
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .05s ease;
 }
 
 .nav a:hover,
 .logout-form button:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+  background: #1f2937;
+  border-color: #475569;
 }
 
+.nav a:active,
+.logout-form button:active {
+  transform: translateY(1px);
+}
+
+/* Estado activo que marcas desde EJS con .active */
+.nav a.active {
+  background: var(--primary-2);  /* #2563eb */
+  border-color: var(--primary-2);
+  color: #fff;
+}
+
+/* CTA “Nuevo” si lo marcas con .btn-primary en el enlace */
+.nav a.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.nav a.btn-primary:hover {
+  background: var(--primary-2);
+  border-color: var(--primary-2);
+}
+
+/* Botón de logout a juego */
+.logout-form { display: inline; }
+
+/* =========================
+   CONTENIDO GENERAL
+   ========================= */
 .content {
   padding-top: 1rem;
   padding-bottom: 2rem;
@@ -90,13 +133,46 @@ h1 { margin-top: 0; }
   border-radius: .6rem;
   font-weight: 600;
 }
-
 .btn:hover { background: var(--primary-2); }
 
 .btn-secondary {
   background: transparent;
   color: var(--text);
   border-color: var(--border);
+}
+
+/*
+ * Controles de cambio de estado y asignación en la vista de tickets
+ * por atender y solicitados.  Ajustamos la separación y la estética de
+ * los botones y selects para que se integren mejor con la interfaz.
+ */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .75rem 0;
+}
+.controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .45rem .8rem;
+  border-radius: .55rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.controls .btn-secondary {
+  border-color: var(--border);
+}
+.assign-form select {
+  background: var(--row);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  padding: .45rem .6rem;
+}
+.assign-form button {
+  border-radius: .5rem;
 }
 
 .table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
@@ -130,8 +206,9 @@ footer.footer {
   color: var(--muted);
 }
 
-.logout-form { display: inline; }
-
+/* =========================
+   GRID DEPARTAMENTOS
+   ========================= */
 .grid-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -158,22 +235,53 @@ footer.footer {
   background: #dbeafe; /* Azul claro al pasar el mouse */
 }
 
-.dept-card i {
-  color: var(--primary);
-}
+.dept-card i { color: var(--primary); }
 
-.dept-name {
-  font-weight: 700;
-  font-size: 1.05rem;
-}
+.dept-name { font-weight: 700; font-size: 1.05rem; }
 
-.dept-actions {
-  color: var(--muted);
+.dept-actions { color: var(--muted); font-size: .9rem; }
+
+
+/* =========================
+   BADGES DE ESTATUS
+   ========================= */
+.badge {
+  border-radius: .4rem;
+  padding: .15rem .45rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: capitalize;
+}
+.badge-abierto       { background-color: #10b981; }  /* verde */
+.badge-en_progreso   { background-color: #f59e0b; }  /* naranja */
+.badge-solucionado   { background-color: #3b82f6; }  /* azul */
+.badge-reabierto     { background-color: #eab308; }  /* amarillo */
+.badge-cerrado       { background-color: #6b7280; }  /* gris */
+.badge-cancelado     { background-color: #ef4444; }  /* rojo */
+
+.status-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin: .5rem 0;
+  align-items: center;
+}
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
   font-size: .9rem;
 }
 
+.assigned-to {
+  color: var(--muted);
+  font-size: .85rem;
+}
 
-/* FAQ / Soluciones frecuentes */
+/* =========================
+   FAQ / SOLUCIONES
+   ========================= */
 .divider {
   border: 0;
   border-top: 1px solid var(--border);
@@ -198,9 +306,7 @@ footer.footer {
   outline: none;
   transition: border-color .12s ease, box-shadow .12s ease;
 }
-
 #faq-search::placeholder { color: var(--muted); }
-
 #faq-search:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(96,165,250,.15);
@@ -229,7 +335,6 @@ footer.footer {
   cursor: pointer;
   transition: background-color .1s ease, color .1s ease;
 }
-
 .faq-title:hover { background: #e5e7eb; }
 
 .faq-title:focus-visible {
@@ -259,7 +364,6 @@ footer.footer {
   padding-left: 1.25rem;
   line-height: 1.55;
 }
-
 .faq-steps li { margin: .25rem 0; }
 
 .faq-empty {
@@ -276,6 +380,9 @@ footer.footer {
 }
 .faq-content::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
+/* =========================
+   RESPONSIVE / ACCESIBILIDAD
+   ========================= */
 @media (max-width: 640px) {
   .faq-header { flex-direction: column; align-items: stretch; }
   #faq-search { max-width: 100%; }

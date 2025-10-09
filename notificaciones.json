@@ -1,0 +1,8 @@
+{
+  "admins": true,
+  "managers": true,
+  "agents": {
+    "*": "all",
+    "agente_cedis": ["PEDIDOS", "MERCANCIA"]
+  }
+}

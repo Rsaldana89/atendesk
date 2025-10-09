@@ -14,7 +14,9 @@ async function getDepartmentsForUser() {
       'CEDIS',
       'Compras',
       'Panaderia',
-      'Capital Humano'
+      'Capital Humano',
+      'Inventarios',
+      'Finanzas'
     )
   `);
   return rows;

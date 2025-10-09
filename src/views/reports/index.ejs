@@ -1,0 +1,272 @@
+<!-- src/views/reports/index.ejs -->
+<section>
+  <h1>Informes y Estadísticas</h1>
+
+  <style>
+    /* Estilos para filtros y KPIs */
+    .filters {
+      display:flex;
+      flex-wrap:wrap;
+      gap:1rem;
+      margin-bottom:1rem;
+      background:var(--card);
+      padding:1rem;
+      border-radius:0.375rem;
+    }
+    .filters label {
+      font-size:0.9rem;
+      font-weight:600;
+      display:block;
+      margin-bottom:0.25rem;
+    }
+    .filters input, .filters select {
+      width:100%;
+      padding:0.25rem;
+      border:1px solid #e2e8f0;
+      border-radius:0.25rem;
+      font-size:0.9rem;
+    }
+    .filters .filter-group {
+      flex:1 1 160px;
+      min-width:160px;
+    }
+    .filters button {
+      align-self:flex-end;
+      padding:0.5rem 1rem;
+      font-size:0.9rem;
+      cursor:pointer;
+    }
+    .kpis {
+      display:grid;
+      grid-template-columns: repeat(auto-fill,minmax(150px,1fr));
+      gap:1rem;
+      margin-top:0.5rem;
+    }
+    .kpi-card{ text-align:center; }
+    .kpi-number{ font-size:1.6rem; font-weight:700; margin:0.25rem 0 0.15rem; }
+    .kpi-label{ color:var(--muted); font-size:0.8rem; }
+    .chart-card{ margin-top:1.5rem; }
+  </style>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <div class="filter-group">
+      <label for="filter-start">Fecha desde</label>
+      <input type="date" id="filter-start" name="start" />
+    </div>
+    <div class="filter-group">
+      <label for="filter-end">Fecha hasta</label>
+      <input type="date" id="filter-end" name="end" />
+    </div>
+    <div class="filter-group">
+      <label for="filter-status">Estatus</label>
+      <select id="filter-status" name="statuses" multiple size="6">
+        <option value="abierto">Abierto</option>
+        <option value="en_progreso">En progreso</option>
+        <option value="solucionado">Solucionado</option>
+        <option value="cerrado">Cerrado</option>
+        <option value="cancelado">Cancelado</option>
+        <option value="reabierto">Reabierto</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="filter-depts">Departamentos</label>
+      <select id="filter-depts" name="depts" multiple size="6">
+        <% (departments || []).forEach(function(d){ %>
+          <option value="<%= d.id %>"><%= d.name %></option>
+        <% }); %>
+      </select>
+    </div>
+    <div class="filter-group" style="flex:0 0 auto; align-self:end;">
+      <button id="btn-apply" class="btn btn-primary" type="button">Aplicar filtros</button>
+    </div>
+    <div class="filter-group" style="flex:0 0 auto; align-self:end;">
+      <!-- Exportar e imprimir solo disponible para roles permitidos (se verifica en servidor) -->
+      <button id="btn-export-rep" class="btn btn-secondary" type="button" style="margin-right:0.25rem">Exportar XLS</button>
+      <button id="btn-print-rep" class="btn btn-secondary" type="button">Imprimir</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="card kpi-card"><div class="kpi-number" id="kpi-total">—</div><div class="kpi-label">Tickets totales</div></div>
+    <div class="card kpi-card"><div class="kpi-number" id="kpi-abierto">—</div><div class="kpi-label">Abiertos</div></div>
+    <div class="card kpi-card"><div class="kpi-number" id="kpi-en_progreso">—</div><div class="kpi-label">En progreso</div></div>
+    <div class="card kpi-card"><div class="kpi-number" id="kpi-solucionado">—</div><div class="kpi-label">Solucionado</div></div>
+    <div class="card kpi-card"><div class="kpi-number" id="kpi-cerrado">—</div><div class="kpi-label">Cerrado</div></div>
+    <div class="card kpi-card"><div class="kpi-number" id="kpi-cancelado">—</div><div class="kpi-label">Cancelado</div></div>
+    <div class="card kpi-card"><div class="kpi-number" id="kpi-reabierto">—</div><div class="kpi-label">Reabierto</div></div>
+    <div class="card kpi-card"><div class="kpi-number" id="kpi-avg-resolution">—</div><div class="kpi-label">Prom. resolución (hrs)</div></div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="card chart-card">
+    <h2 style="margin:0 0 .5rem 0;">Top departamentos por volumen</h2>
+    <canvas id="chart-top" height="150"></canvas>
+  </div>
+  <div class="card chart-card">
+    <h2 style="margin:0 0 .5rem 0;">Distribución por estado</h2>
+    <canvas id="chart-status" height="150"></canvas>
+  </div>
+  <div class="card chart-card">
+    <h2 style="margin:0 0 .5rem 0;">Promedio de resolución por departamento (hrs)</h2>
+    <canvas id="chart-avg-dept" height="150"></canvas>
+  </div>
+  <div class="card chart-card">
+    <h2 style="margin:0 0 .5rem 0;">Tickets resueltos por usuario</h2>
+    <canvas id="chart-solved-by" height="150"></canvas>
+  </div>
+
+  <!-- Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const startInput   = document.getElementById('filter-start');
+      const endInput     = document.getElementById('filter-end');
+      const statusSelect = document.getElementById('filter-status');
+      const deptsSelect  = document.getElementById('filter-depts');
+      const btnApply     = document.getElementById('btn-apply');
+
+      // Estado inicial: últimos 30 días
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm   = String(today.getMonth()+1).padStart(2,'0');
+      const dd   = String(today.getDate()).padStart(2,'0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      endInput.value = todayStr;
+      const prevDate = new Date(today.getTime() - 29 * 86400 * 1000);
+      const yyyy2 = prevDate.getFullYear();
+      const mm2   = String(prevDate.getMonth()+1).padStart(2,'0');
+      const dd2   = String(prevDate.getDate()).padStart(2,'0');
+      startInput.value = `${yyyy2}-${mm2}-${dd2}`;
+
+      // Chart instances
+      let chartTop   = null;
+      let chartStatus = null;
+      let chartAvgDept = null;
+      let chartSolvedBy = null;
+
+      function setKpi(id, value) {
+        document.getElementById(id).textContent = (value ?? 0).toLocaleString('es-MX');
+      }
+
+      async function loadStats() {
+        try {
+          const params = new URLSearchParams();
+          if (startInput.value) params.append('start', startInput.value);
+          if (endInput.value)   params.append('end', endInput.value);
+          const statuses = Array.from(statusSelect.selectedOptions).map(o => o.value);
+          if (statuses.length) params.append('statuses', statuses.join(','));
+          const depts = Array.from(deptsSelect.selectedOptions).map(o => o.value);
+          if (depts.length) params.append('depts', depts.join(','));
+          const res = await fetch(`/reports/api/stats?${params.toString()}`);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+
+          // Totales
+          const totals = data.totals || {};
+          // Suma para total
+          const totalTickets = Object.values(totals).reduce((sum, v) => sum + (v || 0), 0);
+          setKpi('kpi-total', totalTickets);
+          setKpi('kpi-abierto', totals['abierto'] || 0);
+          setKpi('kpi-en_progreso', totals['en_progreso'] || 0);
+          setKpi('kpi-solucionado', totals['solucionado'] || 0);
+          setKpi('kpi-cerrado', totals['cerrado'] || 0);
+          setKpi('kpi-cancelado', totals['cancelado'] || 0);
+          setKpi('kpi-reabierto', totals['reabierto'] || 0);
+          // Promedio resolución
+          const avgHours = data.avgResolutionHours;
+          document.getElementById('kpi-avg-resolution').textContent = avgHours != null ? avgHours.toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) : '—';
+
+          // Top departamentos
+          const topLabels = (data.topDepts || []).map(r => r.department);
+          const topValues = (data.topDepts || []).map(r => r.tickets);
+          if (chartTop) chartTop.destroy();
+          const ctxTop = document.getElementById('chart-top').getContext('2d');
+          chartTop = new Chart(ctxTop, {
+            type:'bar',
+            data:{ labels: topLabels, datasets:[{ label:'Tickets', data: topValues }] },
+            options:{
+              plugins:{ legend:{ display:false } },
+              scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }
+            }
+          });
+
+          // Distribución por estado
+          const statusLabels = ['abierto','en_progreso','solucionado','cerrado','cancelado','reabierto'];
+          const statusDisplay = { abierto:'Abierto', en_progreso:'En progreso', solucionado:'Solucionado', cerrado:'Cerrado', cancelado:'Cancelado', reabierto:'Reabierto' };
+          const distValues  = statusLabels.map(s => totals[s] || 0);
+          if (chartStatus) chartStatus.destroy();
+          const ctxStatus = document.getElementById('chart-status').getContext('2d');
+          chartStatus = new Chart(ctxStatus, {
+            type:'bar',
+            data:{ labels: statusLabels.map(k => statusDisplay[k]), datasets:[{ label:'Tickets', data: distValues }] },
+            options:{
+              plugins:{ legend:{ display:false } },
+              scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }
+            }
+          });
+
+          // Promedio por departamento
+          const avgDeptLabels = (data.avgResolutionByDept || []).map(r => r.department);
+          const avgDeptValues = (data.avgResolutionByDept || []).map(r => r.avg_hours || 0);
+          if (chartAvgDept) chartAvgDept.destroy();
+          const ctxAvg = document.getElementById('chart-avg-dept').getContext('2d');
+          chartAvgDept = new Chart(ctxAvg, {
+            type:'bar',
+            data:{ labels: avgDeptLabels, datasets:[{ label:'Horas', data: avgDeptValues }] },
+            options:{
+              plugins:{ legend:{ display:false } },
+              scales:{ y:{ beginAtZero:true } }
+            }
+          });
+
+          // Tickets resueltos por usuario
+          const solvedLabels = (data.solvedByUser || []).map(r => r.user_name || 'Sin asignar');
+          const solvedValues = (data.solvedByUser || []).map(r => r.tickets || 0);
+          if (chartSolvedBy) chartSolvedBy.destroy();
+          const ctxSolved = document.getElementById('chart-solved-by').getContext('2d');
+          chartSolvedBy = new Chart(ctxSolved, {
+            type:'bar',
+            data:{ labels: solvedLabels, datasets:[{ label:'Tickets', data: solvedValues }] },
+            options:{
+              plugins:{ legend:{ display:false } },
+              scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }
+            }
+          });
+        } catch (err) {
+          console.error('Error al cargar estadísticas:', err);
+        }
+      }
+
+      btnApply.addEventListener('click', function(){
+        loadStats();
+      });
+      // Carga inicial
+      loadStats();
+
+      // Exportar estadísticas como CSV
+      const btnExportRep = document.getElementById('btn-export-rep');
+      if (btnExportRep) {
+        btnExportRep.addEventListener('click', () => {
+          const params = new URLSearchParams();
+          if (startInput.value) params.append('start', startInput.value);
+          if (endInput.value)   params.append('end', endInput.value);
+          const statuses = Array.from(statusSelect.selectedOptions).map(o => o.value);
+          if (statuses.length) params.append('statuses', statuses.join(','));
+          const depts = Array.from(deptsSelect.selectedOptions).map(o => o.value);
+          if (depts.length) params.append('depts', depts.join(','));
+          const url = '/reports/api/export?' + params.toString();
+          window.open(url, '_blank');
+        });
+      }
+      // Imprimir estadísticas (guardar como PDF desde el diálogo de impresión)
+      const btnPrintRep = document.getElementById('btn-print-rep');
+      if (btnPrintRep) {
+        btnPrintRep.addEventListener('click', () => {
+          window.print();
+        });
+      }
+    });
+  </script>
+</section>

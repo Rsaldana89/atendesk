@@ -1,156 +1,92 @@
-<h1 style="margin-bottom:6px;">Anuncios</h1>
-<p class="hint" style="margin-top:-6px;margin-bottom:12px;">
-  Publica avisos <b>generales (Todos)</b> o “a nombre” de un departamento.
-  <br>Todos los usuarios verán todos los anuncios; el campo <i>De parte de</i> solo indica quién emite el anuncio.
-</p>
-
-<style>
-  /* —— Tabla limpia y consistente —— */
-  .table-wrap { margin: 12px 0 28px; overflow-x: auto; }
-  table.stable {
-    width: 100%; border-collapse: collapse; font-size: 14px;
-    background: #fff; border-radius: 12px; overflow: hidden;
-  }
-  .stable thead th {
-    text-align: left; background: #eef2ff; color: #334155;
-    padding: 10px 12px; border-bottom: 1px solid #dbeafe; white-space: nowrap;
-  }
-  .stable tbody td {
-    padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top;
-  }
-  .stable tbody tr:nth-child(odd) { background: #fafafa; }
-  .stable tbody tr:hover { background: #f3f4f6; }
-  .th-sort {
-    background: transparent; border: 0; font: inherit; color: inherit; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 6px; padding: 0;
-  }
-  .th-sort .chev { font-size: 11px; opacity: .45; }
-  .th-sort[data-order="asc"] .chev.asc,
-  .th-sort[data-order="desc"] .chev.desc { opacity: 1; }
-  .mini-btn {
-    padding: 6px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px;
-    cursor: pointer; transition: .15s ease-in-out; font-size: 14px;
-  }
-  .mini-btn:hover { background: #eef2ff; border-color: #b6c2ff; }
-  .btn-danger { background:#ef4444; border-color:#dc2626; color:#fff; }
-  .btn-danger:hover { background:#dc2626; }
-  .btn-save   { background: #3b82f6; color: #fff; border: 1px solid #3b82f6; }
-  .btn-save:hover   { background: #2563eb; border-color:#2563eb; }
-
-  /* —— Modal overlay (para usuarios) —— */
-  #modalOverlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-    background: rgba(0,0,0,.45); z-index: 1000; animation: fadeIn .2s ease-out; }
-  .modal-card {
-    background: #fff; width: min(700px, 92vw); border-radius: 12px; padding: 0; overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0,0,0,.35); animation: scaleIn .25s ease-out;
-  }
-  .modal-header { background: #3b82f6; color: #fff; padding: 14px 18px; font-weight: 600;
-    display: flex; justify-content: space-between; align-items: center; }
-  .modal-header .close { background: transparent; border: none; color: #fff; opacity: .9;
-    font-size: 20px; line-height: 1; cursor: pointer; }
-  .modal-body { padding: 18px 20px; }
-  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin: 12px 0 2px; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .full { grid-column: 1 / -1; }
-
-  .btn-cancel { background: #e5e7eb; border: 1px solid #cbd5e1; }
-  .btn-cancel:hover { background: #e2e8f0; }
-
-  input[type="text"], input[type="email"], input[type="password"], select, textarea {
-    width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;
-    outline: none; transition: .15s ease-in-out; background: #fff;
-  }
-  input:focus, select:focus, textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
-
-  @keyframes fadeIn { from {background: rgba(0,0,0,0);} to {background: rgba(0,0,0,.45);} }
-  @keyframes scaleIn { from {transform: scale(.95);} to {transform: scale(1);} }
-
-  /* ========= Anuncios (alineado con el resto del panel) ========= */
-  :root{
-    --panel-bg: #f8fbff;
-    --panel-border: #dbeafe;
-    --panel-text: #334155;
-  }
-  .card-ann{
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
-    border-radius: 12px;
-    padding: 14px 16px;
-    box-shadow: none;
-  }
-  .card-ann h2{
-    margin: 0 0 10px;
-    font-size: 1rem;
-    color: var(--panel-text);
-  }
-  .card-ann .field label{ color: var(--panel-text); font-weight:600; }
-  .card-ann .hint{ color:#6b7280; }
-  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .form-grid .full{ grid-column:1 / -1; }
-</style>
-
-<!-- ============ SECCIÓN: CREAR ANUNCIO (de parte de...) ============ -->
-<section class="card-ann">
-  <h2>Crear anuncio</h2>
-  <form id="annAdminForm" class="form-grid" onsubmit="return false;">
-    <div class="field">
-      <label for="ann-dept">De parte de</label>
-      <select id="ann-dept" name="dept">
-        <option value="ALL" selected>Todos (General)</option>
-        <% departamentos.forEach(d => { %>
-          <option value="<%= d.name %>"><%= d.name %></option>
-        <% }) %>
-      </select>
-      <div class="hint">Solo identifica el área emisora; no limita a quién se muestra.</div>
-    </div>
-
-    <div class="field full">
-      <label for="ann-title">Título</label>
-      <input id="ann-title" name="title" type="text" maxlength="120" required>
-    </div>
-
-    <div class="field full">
-      <label for="ann-body">Mensaje</label>
-      <textarea id="ann-body" name="body" rows="3" maxlength="500" required></textarea>
-    </div>
-
-    <div class="field">
-      <label for="ann-until">Vigente hasta (opcional)</label>
-      <input id="ann-until" name="until_date" type="date">
-    </div>
-
-    <div class="field" style="display:flex;align-items:flex-end;">
-      <button id="ann-submit" class="mini-btn btn-save" type="submit">Publicar anuncio</button>
-      <span id="ann-status" style="margin-left:10px; color:#64748b;"></span>
-    </div>
-  </form>
-</section>
-
-<!-- ============ LISTADO: ANUNCIOS RECIENTES (solo borrar) ============ -->
-<section class="card-ann">
-  <h2>Anuncios recientes</h2>
-  <div class="table-wrap">
-    <table class="stable">
-      <thead>
-        <tr>
-          <th style="width:140px;">Fecha</th>
-          <th style="width:150px;">Vigencia</th>
-          <th style="width:160px;">De</th>
-          <th style="width:260px;">Título</th>
-          <th>Mensaje</th>
-          <th style="width:120px;">Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="annAdminTbody">
-        <tr><td colspan="6" style="color:#64748b;">Cargando…</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
 
 <!-- ============ RESTO: ADMIN USUARIOS ============ -->
 <h1 style="margin-top:24px;">Administración de Usuarios</h1>
 <button type="button" class="mini-btn" onclick="openUserModal()">+ Crear nuevo usuario</button>
+
+  <!-- Estilos generales para tablas y controles en esta página.  Se incluyen aquí
+       porque la sección de anuncios ha sido movida a su propia vista.  Las
+       clases definidas a continuación se utilizan en las tablas de managers,
+       agentes y usuarios, así como en los formularios y modales. -->
+  <style>
+    .table-wrap { margin: 12px 0 28px; overflow-x: auto; }
+    table.stable {
+      width: 100%; border-collapse: collapse; font-size: 14px;
+      background: #fff; border-radius: 12px; overflow: hidden;
+    }
+    .stable thead th {
+      text-align: left; background: #eef2ff; color: #334155;
+      padding: 10px 12px; border-bottom: 1px solid #dbeafe; white-space: nowrap;
+    }
+    .stable tbody td {
+      padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top;
+    }
+    .stable tbody tr:nth-child(odd) { background: #fafafa; }
+    .stable tbody tr:hover { background: #f3f4f6; }
+    .th-sort {
+      background: transparent; border: 0; font: inherit; color: inherit; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; padding: 0;
+    }
+    .th-sort .chev { font-size: 11px; opacity: .45; }
+    .th-sort[data-order="asc"] .chev.asc,
+    .th-sort[data-order="desc"] .chev.desc { opacity: 1; }
+    .mini-btn {
+      padding: 6px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px;
+      cursor: pointer; transition: .15s ease-in-out; font-size: 14px;
+    }
+    .mini-btn:hover { background: #eef2ff; border-color: #b6c2ff; }
+    .btn-danger { background:#ef4444; border-color:#dc2626; color:#fff; }
+    .btn-danger:hover { background:#dc2626; }
+    .btn-save   { background: #3b82f6; color: #fff; border: 1px solid #3b82f6; }
+    .btn-save:hover   { background: #2563eb; border-color:#2563eb; }
+    #categoriesSection { margin-top: 12px; }
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .chk {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 6px 10px;
+    }
+    .btn-xs {
+      font-size: 12px;
+      padding: 4px 8px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-xs:hover { background: #f1f5f9; }
+    /* Modal overlay definitions */
+    #modalOverlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.45); z-index: 1000; animation: fadeIn .2s ease-out; }
+    .modal-card {
+      background: #fff; width: min(700px, 92vw); border-radius: 12px; padding: 0; overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,.35); animation: scaleIn .25s ease-out;
+    }
+    .modal-header { background: #3b82f6; color: #fff; padding: 14px 18px; font-weight: 600;
+      display: flex; justify-content: space-between; align-items: center; }
+    .modal-header .close { background: transparent; border: none; color: #fff; opacity: .9;
+      font-size: 20px; line-height: 1; cursor: pointer; }
+    .modal-body { padding: 18px 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin: 12px 0 2px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .full { grid-column: 1 / -1; }
+    .btn-cancel { background: #e5e7eb; border: 1px solid #cbd5e1; }
+    .btn-cancel:hover { background: #e2e8f0; }
+    input[type="text"], input[type="email"], input[type="password"], select, textarea {
+      width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;
+      outline: none; transition: .15s ease-in-out; background: #fff;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+    @keyframes fadeIn { from {background: rgba(0,0,0,0);} to {background: rgba(0,0,0,.45);} }
+    @keyframes scaleIn { from {transform: scale(.95);} to {transform: scale(1);} }
+  </style>
 
 <!-- MANAGERS -->
 <h2>Managers</h2>
@@ -275,6 +211,13 @@
             </select>
             <small>Puedes seleccionar varios con Ctrl/Shift.</small>
           </div>
+
+        <!-- Categorías por departamento (aparece cuando se selecciona al menos un departamento) -->
+        <div class="full" id="categoriesSection" style="display:none;">
+          <label>Categorías asignadas</label>
+          <div id="categoryPickers"></div>
+          <small class="hint">Selecciona las categorías para las cuales el agente/manager recibirá notificaciones.</small>
+        </div>
         </div>
         <div class="modal-actions">
           <button type="button" class="mini-btn btn-cancel" onclick="closeUserModal()">Cancelar</button>
@@ -296,6 +239,10 @@
     document.getElementById('deptLabel').textContent = 'Departamentos asignados (múltiples)';
     document.getElementById('modalTitle').textContent = isEdit ? 'Editar usuario' : 'Crear usuario';
     document.getElementById('modalOverlay').style.display = 'flex';
+
+    // Reinicia las suscripciones actuales de categorías y actualiza UI
+    window._CURRENT_SUBS = {};
+    if (typeof updateCategoryUI === 'function') updateCategoryUI();
   }
   function closeUserModal() { document.getElementById('modalOverlay').style.display = 'none'; }
   function toggleDepartments() {
@@ -308,6 +255,9 @@
       const selected = Array.from(sel.options).filter(o => o.selected);
       if (selected.length > 1) { const keep = selected[0].value; for (const o of sel.options) o.selected = (o.value === keep); }
     } else { section.style.display = 'none'; for (const o of sel.options) o.selected = false; }
+
+    // Actualizar categorías cuando cambia la selección de departamentos o rol
+    if (typeof updateCategoryUI === 'function') updateCategoryUI();
   }
 
   // Delegación: botón Editar
@@ -329,6 +279,9 @@
           for (const o of sel.options) if (ids.includes(String(o.value))) o.selected = true;
           if (user.role === 'agent' && ids.length) sel.value = ids[0];
         }
+        // Asigna las suscripciones de categorías del usuario actual para preseleccionar
+        window._CURRENT_SUBS = user.category_subs || {};
+        if (typeof updateCategoryUI === 'function') updateCategoryUI();
       } catch (err) { console.error('No se pudo parsear el usuario del botón:', err); }
     }
   });
@@ -362,113 +315,21 @@
   attachSortHandlers('tblManagers'); attachSortHandlers('tblAgents'); attachSortHandlers('tblUsers');
 </script>
 
-<!-- ============ Script: Anuncios (crear + listar + borrar) ============ -->
+<!-- ============ Script: Categorías por agente/manager ============ -->
+<!-- El catálogo de categorías ya no es necesario -->
 <script>
-(function(){
-  const $ = s => document.querySelector(s);
-
-  async function loadAnnouncementsAdmin(){
-    try{
-      // El backend devuelve activos y vigentes
-      const res = await fetch('/api/announcements?limit=50', { credentials:'include' });
-      const list = res.ok ? await res.json() : [];
-      const tbody = $('#annAdminTbody');
-      tbody.innerHTML = '';
-
-      if(!list.length){
-        tbody.innerHTML = '<tr><td colspan="6" style="color:#64748b;">No hay anuncios.</td></tr>';
-        return;
-      }
-
-      const frag = document.createDocumentFragment();
-      list.forEach(a=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${a.created_at}</td>
-          <td>${a.until_date || '-'}</td>
-          <td>${a.dept === 'ALL' ? 'Todos' : a.dept}</td>
-          <td><strong>${a.title}</strong></td>
-          <td>${a.body}</td>
-          <td><button class="mini-btn btn-danger btn-delete" data-id="${a.id}">Borrar</button></td>
-        `;
-        frag.appendChild(tr);
-      });
-      tbody.appendChild(frag);
-    }catch(e){
-      console.error(e);
-      $('#annAdminTbody').innerHTML = '<tr><td colspan="6" style="color:#dc2626;">No se pudieron cargar.</td></tr>';
-    }
-  }
-
-  async function submitAnnouncementAdmin(){
-    const btn = document.getElementById('ann-submit');
-    const status = document.getElementById('ann-status');
-    status.style.color = '#64748b'; status.textContent = '';
-    btn.disabled = true;
-
-    const payload = {
-      dept: document.getElementById('ann-dept').value || 'ALL',
-      title: document.getElementById('ann-title').value.trim(),
-      body: document.getElementById('ann-body').value.trim(),
-      until_date: document.getElementById('ann-until').value || null
-    };
-
-    if(!payload.title || !payload.body){
-      status.style.color = '#dc2626';
-      status.textContent = 'Llena título y mensaje.';
-      btn.disabled = false;
-      return;
-    }
-
-    try{
-      const res = await fetch('/api/announcements', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        credentials:'include',
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if(!res.ok || data.error){
-        status.style.color = '#dc2626';
-        status.textContent = data.error || 'Error al publicar.';
-      }else{
-        status.style.color = '#16a34a';
-        status.textContent = 'Publicado.';
-        document.getElementById('ann-title').value = '';
-        document.getElementById('ann-body').value = '';
-        await loadAnnouncementsAdmin();
-      }
-    }catch(e){
-      console.error(e);
-      status.style.color = '#dc2626';
-      status.textContent = 'Error de red.';
-    }finally{
-      btn.disabled = false;
-      setTimeout(()=>{ status.textContent=''; status.style.color;'#64748b'; }, 2000);
-    }
-  }
-
-  async function deleteAnnouncement(id){
-    if(!confirm('¿Borrar este anuncio? Esta acción no se puede deshacer.')) return;
-    try{
-      const res = await fetch('/api/announcements/' + id, {
-        method:'DELETE', credentials:'include'
-      });
-      await res.json();
-      await loadAnnouncementsAdmin();
-    }catch(e){ console.error(e); }
-  }
-
-  // Delegación de acción (solo borrar)
-  document.addEventListener('click', (ev) => {
-    const t = ev.target;
-    if (t.classList.contains('btn-delete')) {
-      deleteAnnouncement(t.getAttribute('data-id'));
-    }
-  });
-
-  document.getElementById('annAdminForm').addEventListener('submit', submitAnnouncementAdmin);
-  loadAnnouncementsAdmin();
+(function() {
+  // Ya no se asignan categorías específicas a usuarios desde la UI.  Todas las notificaciones
+  // se gestionan a través del archivo notificaciones.json.  Por lo tanto, ocultamos la sección
+  // de categorías y definimos una función de actualización vacía.
+  window.updateCategoryUI = function() {
+    const section = document.getElementById('categoriesSection');
+    const container = document.getElementById('categoryPickers');
+    if (section) section.style.display = 'none';
+    if (container) container.innerHTML = '';
+  };
+  // Ejecutar inicialmente para asegurar que la sección no se muestre
+  setTimeout(function() { if (typeof updateCategoryUI === 'function') updateCategoryUI(); }, 0);
 })();
 </script>
+

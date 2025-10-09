@@ -5,31 +5,70 @@
     :root{
       --card-bg:#f7faff; --card-border:#dbeafe; --field-bg:#ffffff; --field-border:#cbd5e1;
       --field-border-focus:#60a5fa; --hint:#64748b; --title:#1f2937;
+      --subtle:#eef2ff;
     }
+
     /* —— Layout general —— */
     .nt-grid{display:grid;gap:20px}
     @media(min-width:992px){.nt-grid{grid-template-columns:1fr 360px}}
+
     .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:18px}
-    .card h1,.card h2{margin:0 0 12px;font-size:20px;color:var(--title)}
-    .divider{border:0;height:1px;background:#eef2ff;margin:24px 0}
+    .card h1,.card h2{margin:0 0 12px;font-size:21px;line-height:1.2;color:var(--title)}
+    .divider{border:0;height:1px;background:var(--subtle);margin:24px 0}
+
+    /* —— Título + contexto —— */
+    .nt-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #c7d2fe;background:#e0e7ff;border-radius:999px;color:#1f2937;font-size:12px}
+
     /* —— Form —— */
-    .form-grid{display:grid;gap:14px}
+    .form-grid{display:grid;gap:16px}
+    .group{border:1px dashed #dbeafe;border-radius:12px;padding:14px;background:#fff}
+    .group legend{font-weight:700;color:#1f2937;margin-bottom:8px}
+    .group-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .group-title h3{margin:0;font-size:16px;color:#1f2937}
+
+    .field{display:flex;flex-direction:column}
+    .field + .field{margin-top:12px}
+
     .field label{display:block;font-weight:600;margin-bottom:6px;color:#334155}
     .field input[type="text"], .field input[type="tel"], .field textarea, .field select, .field input[type="search"]{
       width:100%;box-sizing:border-box;border:1px solid var(--field-border);
-      border-radius:10px;padding:10px 12px;background:var(--field-bg);font-size:14px;outline:none
+      border-radius:10px;padding:12px 12px;background:var(--field-bg);font-size:15px;outline:none
     }
     .field input:focus,.field textarea:focus,.field select:focus{
       border-color:var(--field-border-focus);box-shadow:0 0 0 3px rgba(59,130,246,.15);background:#fff
     }
+
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:720px){.row-2{grid-template-columns:1fr}}
+
     .hint{color:var(--hint);font-size:12px;margin-top:4px}
     .char{font-size:12px;margin-top:4px}
     .char.ok{color:#16a34a}.char.warn{color:#b91c1c}
+
+    /* —— Errores en línea —— */
+    .field-error{color:#b91c1c;font-size:12px;margin-top:4px;display:none}
+    .invalid{border-color:#ef4444 !important; box-shadow:0 0 0 3px rgba(239,68,68,.15) !important}
+
+    /* —— Progreso descripción —— */
+    .nt-progress{height:6px;background:#eef2ff;border-radius:6px;overflow:hidden;margin-top:6px}
+    .nt-progress > span{display:block;height:100%;width:0%;background:#60a5fa;transition:width .2s ease}
+
+    /* —— Acciones —— */
     .actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
     .btn{display:inline-block;border:1px solid transparent;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
     .btn-primary{background:#2563eb;color:#fff}.btn-secondary{background:#eef2f7;color:#334155;border-color:#e2e8f0}
     .btn:disabled{opacity:.6;cursor:not-allowed}
+    @media (max-width: 720px){
+      .actions{
+        position:sticky; bottom:0; left:0; right:0;
+        background:var(--card-bg); border-top:1px solid #e5e7eb; padding:10px; margin-top:12px;
+        z-index:5;
+      }
+    }
+
     .alert{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;margin-bottom:12px}
+
     /* —— FAQ —— */
     .faq-header{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
     #faq-card{position:relative}
@@ -40,111 +79,135 @@
     .faq-content{display:none;padding:10px 12px;background:#fff}
     .faq-steps{margin:0 0 0 18px;padding:0}
     .faq-empty{padding:10px 12px;color:#64748b}
+
     .note-inline{font-size:12px;color:#64748b;margin-left:6px}
     .badge{display:inline-block;font-size:12px;padding:4px 8px;border-radius:999px;background:#e0e7ff;color:#1f2937;border:1px solid #c7d2fe}
+
     /* —— Evidencias —— */
     .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
     .ev-thumb{width:100%;height:auto;border-radius:8px;border:1px solid #e5e7eb}
   </style>
 
   <div class="nt-grid">
-    <!-- —— Columna izquierda: formulario —— -->
-    <section class="card">
-      <h1>Nuevo Ticket</h1>
-      <% if (error) { %><div class="alert"><%= error %></div><% } %>
-
-      <!-- IMPORTANTE: action + enctype para enviar archivos -->
-      <form action="/tickets/new" method="post" enctype="multipart/form-data" class="form-grid" id="ticket-form" novalidate>
-
-        <!-- Nombre de quien levanta -->
-        <div class="field">
-          <label for="creator_name">Nombre de quien levanta el ticket *</label>
-          <input id="creator_name" type="text" name="creator_name"
-                 placeholder="Nombre y apellidos"
-                 value="<%= typeof creatorName !== 'undefined' ? creatorName : '' %>"
-                 required minlength="3" maxlength="120" autocomplete="name">
-        </div>
-
-        <!-- Teléfono (opcional) -->
-        <div class="field">
-          <label for="contact_phone">Teléfono de contacto (opcional)</label>
-          <input id="contact_phone" type="tel" name="contact_phone"
-                 inputmode="tel" maxlength="25"
-                 placeholder="Ej. 442 123 4567"
-                 value="<%= typeof contactPhone !== 'undefined' ? contactPhone : '' %>">
-          <div class="hint">Puede incluir espacios, guiones o paréntesis.</div>
-        </div>
-
-        <!-- Departamento -->
-        <div class="field">
-          <label for="department_id">Departamento *</label>
-          <select name="department_id" id="department_id" required>
-            <option value="">— Selecciona —</option>
-            <% departments.forEach(d => { %>
-              <option value="<%= d.id %>" <%= String(d.id) === String(selectedDepartment) ? 'selected' : '' %>><%= d.name %></option>
-            <% }) %>
-          </select>
-          <span id="dep-note" class="note-inline"></span>
-          <div class="hint">El ticket se asignará automáticamente al equipo de este departamento.</div>
-        </div>
-
-        <!-- Categoría (por departamento) -->
-        <div class="field">
-          <label for="category_select">Categoría *</label>
-          <select id="category_select" required disabled>
-            <option value="">— Selecciona un departamento primero —</option>
-          </select>
-
-          <!-- oculto: el backend recibe "category" -->
-          <input type="hidden" id="category" name="category"
-                 value="<%= typeof category !== 'undefined' ? category : '' %>">
-
-          <div class="note-inline">
-            Elegida: <span id="category_badge" class="badge">—</span>
+    <!-- —— Columna izquierda: formulario (dividido en bloques) —— -->
+    <form action="/tickets/new" method="post" enctype="multipart/form-data" class="form-grid" id="ticket-form" novalidate>
+      <section class="card">
+        <div class="nt-head">
+          <h1>Nuevo Ticket</h1>
+          <!-- “Píldora” con el depto seleccionado (se actualiza en JS) -->
+          <div class="pill" id="dept-pill" title="Departamento seleccionado">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
+            <span id="dept-pill-text">Departamento</span>
           </div>
-          <div class="hint">Primero elige la categoría; después se habilitan los asuntos relacionados.</div>
         </div>
+        <% if (error) { %><div class="alert"><%= error %></div><% } %>
 
-        <!-- Asunto (filtrado por categoría) -->
-        <div class="field">
-          <label for="subject_select">Asunto *</label>
-          <select id="subject_select" required disabled>
-            <option value="">— Selecciona una categoría primero —</option>
-          </select>
-          <!-- oculto: el backend recibe "subject" -->
-          <input id="subject" type="hidden" name="subject"
-                 value="<%= typeof subject !== 'undefined' ? subject : '' %>">
-          <div class="hint">Elige el asunto relacionado con la categoría seleccionada.</div>
-        </div>
+        <!-- Grupo: Contacto -->
+        <fieldset class="group">
+          <div class="group-title"><h3>1) Contacto</h3></div>
 
-        <!-- Descripción -->
-        <div class="field">
-          <label for="description">Descripción *</label>
-          <textarea id="description" name="description" rows="6" required maxlength="2000"
-            placeholder="Describe qué pasó, desde cuándo, a cuántas personas afecta y qué ya intentaste…"><%= typeof description !== 'undefined' ? description : '' %></textarea>
-          <div class="char" id="desc-count"></div>
-        </div>
-
-        <!-- Urgencia (auto) -->
-        <div class="field">
-          <label>Urgencia</label>
-          <div id="urgency_badge" class="badge">MEDIA</div>
-          <input type="hidden" id="urgency" name="urgency" value="MEDIA">
-          <div class="hint">Se establece al elegir el asunto.</div>
-        </div>
-
-        <!-- Evidencias (opcional, hasta 2) -->
-        <div class="field">
-          <label for="evidencias">Evidencias (opcional)</label>
-          <input id="evidencias" name="evidencias" type="file"
-                 accept="image/jpeg,image/png" multiple>
-          <div class="hint">
-            Puedes adjuntar hasta <strong>2</strong> fotos JPG o PNG (máx <strong>5 MB</strong> cada una).
-            Se optimizarán a JPG 800×600 al subirlas.
+          <div class="field">
+            <label for="creator_name">Nombre de quien levanta el ticket *</label>
+            <input id="creator_name" type="text" name="creator_name"
+                  placeholder="Nombre y apellidos"
+                  value="<%= typeof creatorName !== 'undefined' ? creatorName : '' %>"
+                  required minlength="3" maxlength="120" autocomplete="name">
+            <div class="field-error" id="err-creator"></div>
           </div>
-          <div id="ev-errors" class="hint" style="color:#b91c1c;display:none"></div>
-          <div id="ev-preview" class="ev-grid" style="margin-top:8px"></div>
-        </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="contact_phone">Teléfono de contacto (opcional)</label>
+              <input id="contact_phone" type="tel" name="contact_phone"
+                    inputmode="tel" maxlength="25"
+                    placeholder="Ej. 442 123 4567"
+                    value="<%= typeof contactPhone !== 'undefined' ? contactPhone : '' %>">
+              <div class="hint">Puedes incluir espacios, guiones o paréntesis.</div>
+            </div>
+
+            <div class="field">
+              <label for="department_id">Departamento *</label>
+              <select name="department_id" id="department_id" required>
+                <option value="">— Selecciona —</option>
+                <% departments.forEach(d => { %>
+                  <option value="<%= d.id %>" <%= String(d.id) === String(selectedDepartment) ? 'selected' : '' %>><%= d.name %></option>
+                <% }) %>
+              </select>
+              <span id="dep-note" class="note-inline"></span>
+              <div class="hint">El ticket se asignará automáticamente al equipo de este departamento.</div>
+              <div class="field-error" id="err-dept"></div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Grupo: Detalle del problema -->
+        <fieldset class="group">
+          <div class="group-title"><h3>2) Detalle del problema</h3></div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="category_select">Categoría *</label>
+              <select id="category_select" required disabled>
+                <option value="">— Selecciona un departamento primero —</option>
+              </select>
+
+              <!-- oculto: el backend recibe "category" -->
+              <input type="hidden" id="category" name="category"
+                    value="<%= typeof category !== 'undefined' ? category : '' %>">
+
+              <div class="note-inline">
+                Elegida: <span id="category_badge" class="badge">—</span>
+              </div>
+              <div class="hint">Primero elige la categoría; después se habilitan los asuntos relacionados.</div>
+              <div class="field-error" id="err-cat"></div>
+            </div>
+
+            <div class="field">
+              <label for="subject_select">Asunto *</label>
+              <select id="subject_select" required disabled>
+                <option value="">— Selecciona una categoría primero —</option>
+              </select>
+              <!-- oculto: el backend recibe "subject" -->
+              <input id="subject" type="hidden" name="subject"
+                    value="<%= typeof subject !== 'undefined' ? subject : '' %>">
+              <div class="hint">Elige el asunto relacionado con la categoría seleccionada.</div>
+              <div class="field-error" id="err-subj"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="description">Descripción *</label>
+            <textarea id="description" name="description" rows="6" required minlength="10" maxlength="2000"
+              placeholder="Describe qué pasó, desde cuándo, a cuántas personas afecta y qué ya intentaste…"><%= typeof description !== 'undefined' ? description : '' %></textarea>
+            <div class="char" id="desc-count"></div>
+            <div class="nt-progress"><span id="desc-bar"></span></div>
+            <div class="field-error" id="err-desc"></div>
+          </div>
+
+          <div class="field">
+            <label>Urgencia</label>
+            <div id="urgency_badge" class="badge">MEDIA</div>
+            <input type="hidden" id="urgency" name="urgency" value="MEDIA">
+            <div class="hint">Se establece al elegir el asunto.</div>
+          </div>
+        </fieldset>
+
+        <!-- Grupo: Evidencias -->
+        <fieldset class="group">
+          <div class="group-title"><h3>3) Evidencias (opcional)</h3></div>
+
+          <div class="field">
+            <label for="evidencias">Adjuntar imágenes (máx. 2)</label>
+            <input id="evidencias" name="evidencias" type="file"
+                  accept="image/jpeg,image/png" multiple>
+            <div class="hint">
+              Puedes adjuntar hasta <strong>2</strong> fotos JPG o PNG (máx <strong>5 MB</strong> cada una).
+              Se optimizarán a JPG 800×600 al subirlas.
+            </div>
+            <div id="ev-errors" class="hint" style="color:#b91c1c;display:none"></div>
+            <div id="ev-preview" class="ev-grid" style="margin-top:8px"></div>
+          </div>
+        </fieldset>
 
         <!-- Acciones -->
         <div class="actions">
@@ -152,8 +215,8 @@
           <button type="reset" class="btn btn-secondary">Limpiar</button>
           <a href="/tickets" class="btn btn-secondary">Cancelar</a>
         </div>
-      </form>
-    </section>
+      </section>
+    </form>
 
     <!-- —— Columna derecha: soluciones frecuentes —— -->
     <section class="card" id="faq-card" style="display:none;">
@@ -180,7 +243,6 @@
       const desc = $('#description');
       const descCount = $('#desc-count');
       const form = $('#ticket-form');
-      const btn = $('#btn-submit');
       const dep = document.getElementById('department_id');
       const depNote = document.getElementById('dep-note');
       const creator = document.getElementById('creator_name');
@@ -189,6 +251,7 @@
       const catSel    = document.getElementById('category_select'); // select de categoría
       const urgencyHidden = document.getElementById('urgency');
       const urgencyBadge  = document.getElementById('urgency_badge');
+      const deptPillText  = document.getElementById('dept-pill-text');
 
       // Evidencias (cliente)
       const MAX_FILES_EV = 2;
@@ -320,6 +383,12 @@
         } else {
           setCategory('');
         }
+
+        // actualiza pill de depto
+        try{
+          const text = dep.options[dep.selectedIndex]?.text || 'Departamento';
+          if (deptPillText) deptPillText.textContent = text;
+        }catch(e){}
       }
 
       // —— Llenar ASUNTOS según la categoría elegida
@@ -385,24 +454,68 @@
         setUrgency(opt.dataset.urgency  || 'MEDIA');
       }
 
-      // —— Contador + validación ligera
+      /* —— Contador (min 10) — ya NO bloquea el botón aquí —— */
       function updateCount(){
+        const min = parseInt(desc.getAttribute('minlength'), 10) || 10;
+        const max = parseInt(desc.getAttribute('maxlength'), 10) || 2000;
         const len = desc.value.length;
-        const min = 20, max = desc.getAttribute('maxlength')|0;
-        const ok  = len >= min && len <= max;
 
-        const nameOk = (creator.value || '').trim().length >= 3;
-        const depOk  = !!dep.value;
-        const catOk  = !!catSel.value;
-        const subjOk = !!subjectSel.value;
+        descCount.textContent = `${len}/${max} caracteres` + (len < min ? ` · mínimo ${min}` : '');
+        descCount.className = 'char ' + (len >= min ? 'ok' : 'warn');
 
-        descCount.textContent = `${len}/${max} caracteres` + (len < min ? ` · mínimo sugerido ${min}` : '');
-        descCount.className = 'char ' + (ok ? 'ok' : 'warn');
+        const bar = document.getElementById('desc-bar');
+        if (bar) bar.style.width = Math.min(100, Math.round((len / max)*100)) + '%';
+      }
 
-        // incluye validación de evidencias (si el usuario seleccionó archivos inválidos)
-        const evOk = evidenciasOk();
+      /* —— Errores en línea —— */
+      function setError(el, msg, errElId){
+        const err = document.getElementById(errElId);
+        if (msg){
+          el.classList.add('invalid');
+          if (err){ err.textContent = msg; err.style.display = 'block'; }
+        } else {
+          el.classList.remove('invalid');
+          if (err){ err.textContent = ''; err.style.display = 'none'; }
+        }
+      }
+      function validateInline(){
+        let firstInvalid = null;
 
-        btn.disabled = !(ok && nameOk && depOk && catOk && subjOk && evOk);
+        // Nombre
+        if (!creator.value.trim() || creator.value.trim().length < 3){
+          if (!firstInvalid) firstInvalid = creator;
+          setError(creator, 'Escribe tu nombre completo (mín. 3).', 'err-creator');
+        } else setError(creator, '', 'err-creator');
+
+        // Depto
+        if (!dep.value){
+          if (!firstInvalid) firstInvalid = dep;
+          setError(dep, 'Selecciona un departamento.', 'err-dept');
+        } else setError(dep, '', 'err-dept');
+
+        // Categoría
+        if (!catSel.value){
+          if (!firstInvalid) firstInvalid = catSel;
+          setError(catSel, 'Selecciona una categoría.', 'err-cat');
+        } else setError(catSel, '', 'err-cat');
+
+        // Asunto
+        if (!subjectSel.value){
+          if (!firstInvalid) firstInvalid = subjectSel;
+          setError(subjectSel, 'Selecciona un asunto.', 'err-subj');
+        } else setError(subjectSel, '', 'err-subj');
+
+        // Descripción
+        const min = parseInt(desc.getAttribute('minlength'), 10) || 10;
+        if (!desc.value.trim() || desc.value.trim().length < min){
+          if (!firstInvalid) firstInvalid = desc;
+          setError(desc, `La descripción debe tener al menos ${min} caracteres.`, 'err-desc');
+        } else setError(desc, '', 'err-desc');
+
+        // Evidencias
+        evidenciasOk(); // muestra mensaje si hay error
+
+        return firstInvalid;
       }
 
       // —— Eventos
@@ -411,6 +524,7 @@
         renderFaq();
         setUrgency('MEDIA');
         updateCount();
+        validateInline();
         if (!dep.disabled && dep.value) {
           setTimeout(()=>lockDeptSelect('Fijado por tu selección'), 0);
         }
@@ -428,16 +542,19 @@
         setUrgency('MEDIA');
         fillSubjectsForCategory();
         updateCount();
+        validateInline();
       });
 
       subjectSel.addEventListener('change', ()=>{
         applySubjectSelection();
         updateCount();
+        validateInline();
       });
 
-      // Contadores en vivo
-      desc.addEventListener('input', updateCount);
-      creator.addEventListener('input', updateCount);
+      // Contadores y validación en vivo
+      [desc, creator].forEach(el=>{
+        el.addEventListener('input', ()=>{ updateCount(); validateInline(); });
+      });
 
       form.addEventListener('reset', () => {
         setTimeout(() => {
@@ -447,14 +564,25 @@
           fillCategoriesForDept();
           clearPreview();
           updateCount();
+          validateInline();
           if (dep.disabled) { ensureDeptMirror(); }
         }, 0);
       });
 
-      // ✅ Sincroniza categoría y depto justo antes de enviar
-      form.addEventListener('submit', () => {
-        if (catSel && catSel.value) setCategory(catSel.value); // asegura hidden 'category'
-        ensureDeptMirror();                                    // asegura hidden 'department_id'
+      // ✅ Submit: valida, muestra mensajes nativos e inline y hace scroll al primer error
+      form.addEventListener('submit', (e) => {
+        if (catSel && catSel.value) setCategory(catSel.value);
+        ensureDeptMirror();
+
+        const firstInvalid = validateInline();
+        if (!form.checkValidity() || firstInvalid){
+          e.preventDefault();
+          form.reportValidity();
+          if (firstInvalid){
+            firstInvalid.focus({preventScroll:false});
+            firstInvalid.scrollIntoView({behavior:'smooth', block:'center'});
+          }
+        }
       });
 
       // —— Si el usuario sólo tiene 1 departamento, bloquear el select y crear hidden
@@ -490,17 +618,18 @@
           return;
         }
 
+        // CERRADO por defecto
         items.forEach((it, idx) => {
           const id = `faq-${idx}`;
           const pasos = (it.pasos || []).map(p => `<li>${p}</li>`).join('');
           const block = document.createElement('div');
           block.className = 'faq-item';
           block.innerHTML = `
-            <button class="faq-title" type="button" aria-expanded="${idx===0?'true':'false'}" aria-controls="${id}">
+            <button class="faq-title" type="button" aria-expanded="false" aria-controls="${id}">
               ${it.titulo}
               <span class="chev">▾</span>
             </button>
-            <div id="${id}" class="faq-content" style="display:${idx===0?'block':'none'}">
+            <div id="${id}" class="faq-content" style="display:none">
               ${pasos ? `<ol class="faq-steps">${pasos}</ol>` : `<p>Sin pasos registrados.</p>`}
             </div>`;
           faqList.appendChild(block);

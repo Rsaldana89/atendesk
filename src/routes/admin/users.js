@@ -31,6 +31,10 @@ router.get('/users', requireAdmin, async (req, res) => {
       'SELECT id, name FROM departments ORDER BY name'
     );
 
+    // No se cargan suscripciones de categorías porque la notificación por
+    // categorías se gestiona mediante el archivo notificaciones.json.
+    users.forEach(u => { u.category_subs = {}; });
+
     res.render('admin/users', {
       title: 'Administración de Usuarios',
       users,
@@ -92,6 +96,7 @@ router.post('/users/save', requireAdmin, async (req, res) => {
       }
     }
 
+    // Las suscripciones de categorías ya no se guardan en la base de datos.
     res.redirect('/admin/users');
   } catch (err) {
     console.error('Error al guardar usuario:', err);

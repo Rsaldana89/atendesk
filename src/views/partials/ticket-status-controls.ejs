@@ -4,33 +4,62 @@ const can = arr => arr.includes(userRole);
 const s   = t.status;
 %>
 <div class="controls" style="display:flex; gap:8px; flex-wrap:wrap; margin:12px 0">
+  <% 
+    // Determinar si se debe mostrar el formulario de asignación.  Sólo
+    // administradores o managers en la vista "por atender" pueden asignar
+    // tickets y sólo cuando hay usuarios asignables (agentes o managers)
+    // disponibles para el departamento.  Además, no se permite asignar si el
+    // ticket está en un estado final (cancelado o cerrado).
+    const showAssignForm =
+      viewMode === 'attend' &&
+      (userRole === 'admin' || userRole === 'manager') &&
+      assignables && assignables.length > 0 &&
+      !(['cancelado','cerrado'].includes(s));
+  %>
+  <% if (showAssignForm) { %>
+    <form action="/tickets/<%= t.id %>/assign" method="post" class="assign-form" style="display:flex; align-items:center; gap:6px;">
+      <label for="agent_id" class="sr-only">Asignar a</label>
+      <select name="agent_id" id="agent_id" class="form-select" required>
+        <option value="">Asignar a…</option>
+        <% assignables.forEach(function(u) { %>
+          <option value="<%= u.id %>" <%= (t.assigned_to === u.id) ? 'selected' : '' %>><%= u.full_name %><%= u.role === 'manager' ? ' (manager)' : '' %></option>
+        <% }); %>
+      </select>
+      <button type="submit" class="btn btn-secondary">Asignar</button>
+    </form>
+  <% } %>
+
   <!-- Aceptar: convierte un ticket abierto en en_progreso y lo asigna al agente actual. -->
-  <% if (s === 'abierto' && can(['admin','manager','agent'])) { %>
+  <% if (viewMode === 'attend' && s === 'abierto' && can(['admin','manager','agent']) && canAccept) { %>
     <button class="btn" data-to="en_progreso">Aceptar</button>
   <% } %>
 
-  <!-- Liberar: regresa un ticket en progreso a abierto y libera la asignación. -->
-  <% if (s === 'en_progreso' && (can(['admin','manager']) || (userRole === 'agent' && t.assigned_to === userId))) { %>
+  <!-- Liberar: regresa un ticket en progreso a abierto y libera la asignación (solo en vista de atender). -->
+  <% if (viewMode === 'attend' && s === 'en_progreso' && (can(['admin','manager']) || (userRole === 'agent' && t.assigned_to === userId))) { %>
     <button class="btn btn-secondary" data-to="abierto">Liberar</button>
   <% } %>
 
-  <!-- Marcar solucionado: desde en_progreso o reabierto → solucionado. -->
-  <% if ((s === 'en_progreso' || s === 'reabierto') && can(['admin','manager','agent'])) { %>
+  <!-- Marcar solucionado: desde en_progreso o reabierto → solucionado (solo en vista de atender). -->
+  <% if (viewMode === 'attend' && (s === 'en_progreso' || s === 'reabierto') && can(['admin','manager','agent'])) { %>
     <button class="btn" data-to="solucionado">Solucionado</button>
   <% } %>
 
   <!-- Cerrar: desde solucionado → cerrado. -->
-  <% if (s === 'solucionado' && can(['admin','user'])) { %>
-    <button class="btn" data-to="cerrado">Cerrar</button>
+  <% if (s === 'solucionado' && can(['admin','manager','user'])) { %>
+    <button class="btn btn-success" data-to="cerrado">Cerrar</button>
   <% } %>
 
-  <!-- Reabrir: desde solucionado o cerrado → reabierto. -->
-  <% if ((s === 'solucionado' || s === 'cerrado') && can(['admin','manager','agent','user'])) { %>
+  <!-- Reabrir: desde solucionado → reabierto.  Disponible en ambas vistas.
+       No se muestra cuando el ticket está cerrado, pues se considera estado final
+       y no queremos permitir reaperturas desde el frontend. -->
+  <% if (s === 'solucionado' && can(['admin','manager','agent','user'])) { %>
     <button class="btn" data-to="reabierto">Reabrir</button>
   <% } %>
 
-  <!-- Cancelar: desde cualquier estado activo (no final) → cancelado.  Solo admin, manager o usuario. -->
-  <% if (['abierto','en_progreso','reabierto','solucionado'].includes(s) && can(['admin','manager','user'])) { %>
+  <!-- Cancelar: desde cualquier estado activo (no final) → cancelado.  Solo admin,
+       manager, agente o usuario pueden cancelar.  Está disponible en ambas
+       vistas. -->
+  <% if (['abierto','en_progreso','reabierto','solucionado'].includes(s) && can(['admin','manager','agent','user'])) { %>
     <button class="btn btn-secondary" data-to="cancelado">Cancelar</button>
   <% } %>
 </div>

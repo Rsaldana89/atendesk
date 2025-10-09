@@ -1,0 +1,381 @@
+<!--
+  Vista de anuncios con canales por departamento y sistema de comentarios.
+  Mejorado:
+  - Contadores cargan desde el inicio.
+  - Orden fijo de departamentos.
+  - Íconos visuales por canal.
+  - Eliminados los falsos errores de VSCode (uso de data-*).
+-->
+
+<section>
+  <h1>Anuncios</h1>
+  <p class="hint" style="margin-top:-6px;margin-bottom:12px;">
+    Consulta los comunicados de cada área.  Despliega un canal para ver sus
+    anuncios vigentes.  Los managers pueden publicar en sus departamentos,
+    mientras que los administradores pueden publicar en cualquier canal,
+    incluido el general.
+  </p>
+
+  <% const userRole = user ? user.role : null; %>
+  <% const depts = departments || []; %>
+  <% const accessible = accessibleDeptNames || []; %>
+
+  <!-- Estilos -->
+  <style>
+    :root {
+      --channel-bg: #f8fbff;
+      --channel-border: #dbeafe;
+      --channel-text: #1e293b;
+      --comment-border: #cbd5e1;
+      --primary: #3b82f6;
+      --danger: #ef4444;
+      --success: #16a34a;
+    }
+    details.channel {
+      background: var(--channel-bg);
+      border: 1px solid var(--channel-border);
+      border-radius: 12px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      transition: all .2s ease;
+    }
+    details.channel[open] {
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    details.channel summary {
+      cursor: pointer;
+      padding: 14px 18px;
+      color: var(--channel-text);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      list-style: none;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    details.channel summary::-webkit-details-marker { display: none; }
+    details.channel .label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    details.channel .label .icon { font-size: 1.3rem; }
+    details.channel .channel-content { padding: 12px 16px 20px; }
+    summary .count { font-size: 14px; color: #64748b; font-weight: normal; }
+
+    .ann-form .field { margin-bottom: 8px; }
+    .ann-form label { display:block;margin-bottom:4px;font-weight:600;color:var(--channel-text); }
+    .ann-form input[type="text"], .ann-form textarea, .ann-form input[type="date"] {
+      width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;
+    }
+    .ann-form button { padding:6px 14px;font-size:14px;border:1px solid var(--primary);background:var(--primary);color:#fff;border-radius:8px;cursor:pointer; }
+    .ann-form button:hover { background:#2563eb;border-color:#2563eb; }
+    .ann-form .status { margin-left:8px;font-size:14px; }
+
+    .announcement { border:1px solid #e5e7eb;border-radius:8px;background:#fff;margin-bottom:12px;padding:10px 12px; }
+    .announcement .header { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:8px; }
+    .announcement .title { font-weight:600;color:var(--channel-text); }
+    .announcement .meta { font-size:12px;color:#64748b;text-align:right; }
+    .announcement .meta span { display:block; }
+    .announcement .body { margin:6px 0 8px;color:#374151; }
+    .announcement .btn-delete { padding:4px 10px;font-size:12px;border:1px solid var(--danger);background:var(--danger);color:#fff;border-radius:6px;cursor:pointer; }
+    .announcement .btn-delete:hover { background:#dc2626;border-color:#dc2626; }
+
+    .comments { margin-top:6px;margin-bottom:6px; }
+    .comment { border-left:2px solid var(--comment-border);padding-left:8px;margin-top:8px; }
+    .comment small { color:#64748b;font-size:12px; }
+    .reply-btn { font-size:12px;color:var(--primary);background:none;border:none;cursor:pointer;margin-top:4px; }
+    .reply-btn:hover { text-decoration:underline; }
+
+    .comment-form { display:flex;flex-direction:column;gap:6px;margin-top:8px; }
+    .comment-form textarea { width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;font-size:14px; }
+    .comment-form .btn-comment { align-self:flex-start;padding:4px 12px;font-size:14px;border:1px solid var(--primary);background:var(--primary);color:#fff;border-radius:6px;cursor:pointer; }
+    .comment-form .btn-comment:hover { background:#2563eb;border-color:#2563eb; }
+    .comment-form .cancel-reply { font-size:12px;background:none;border:none;color:var(--danger);cursor:pointer; }
+    .comment-form .status { font-size:14px; }
+  </style>
+
+  <div id="channels" data-accessible='<%- JSON.stringify(accessibleDeptNames || []) %>'>
+    <% 
+      const ordered = ['ALL','Capital Humano','CEDIS','Compras','Finanzas','Inventarios','Mantenimiento','Panaderia','Sistemas'];
+      const icons = {
+        'ALL': '📢',
+        'Capital Humano': '👥',
+        'CEDIS': '🚚',
+        'Compras': '🛒',
+        'Finanzas': '💰',
+        'Inventarios': '📦',
+        'Mantenimiento': '🛠️',
+        'Panaderia': '🥐',
+        'Sistemas': '💻'
+      };
+      const channelNames = ordered.filter(d => d === 'ALL' || depts.includes(d));
+      channelNames.forEach(function(deptName) { 
+        const icon = icons[deptName] || '🏢'; 
+    %>
+      <details class="channel" data-dept="<%= deptName %>">
+        <summary>
+          <span class="label">
+            <span class="icon"><%= icon %></span>
+            <span><%= deptName === 'ALL' ? 'General' : deptName %></span>
+          </span>
+          <span class="count">(0)</span>
+        </summary>
+        <div class="channel-content">
+          <% const canPost = (deptName === 'ALL' && userRole === 'admin') || (accessible && accessible.includes(deptName)); %>
+          <% if (canPost) { %>
+            <form class="ann-form" data-dept="<%= deptName %>" onsubmit="return false;">
+              <div class="field">
+                <label for="title-<%= deptName %>">Título</label>
+                <input id="title-<%= deptName %>" type="text" name="title" maxlength="120" required>
+              </div>
+              <div class="field">
+                <label for="body-<%= deptName %>">Mensaje</label>
+                <textarea id="body-<%= deptName %>" name="body" rows="3" maxlength="500" required></textarea>
+              </div>
+              <div class="field">
+                <label for="until-<%= deptName %>">Vigente hasta (opcional)</label>
+                <input id="until-<%= deptName %>" type="date" name="until_date">
+              </div>
+              <button type="submit">Publicar</button>
+              <span class="status"></span>
+            </form>
+          <% } %>
+          <div class="ann-list"></div>
+        </div>
+      </details>
+    <% }); %>
+  </div>
+
+  <script>
+  (() => {
+    const userRole = "<%= user ? user.role : '' %>";
+    const container = document.getElementById('channels');
+    const accessible = JSON.parse(container.dataset.accessible || "[]");
+
+    // Al iniciar, obtener conteos por canal
+    document.querySelectorAll('details.channel').forEach(channel => {
+      const dept = channel.getAttribute('data-dept');
+      const countEl = channel.querySelector('summary .count');
+      fetch('/api/announcements?depts=' + encodeURIComponent(dept), { credentials:'include' })
+        .then(res => res.json())
+        .then(data => {
+          const anns = data.filter(a => a.dept === dept);
+          countEl.textContent = '(' + anns.length + ')';
+        })
+        .catch(() => { countEl.textContent = '(0)'; });
+    });
+
+    // Eventos por canal
+    document.querySelectorAll('details.channel').forEach(channel => {
+      channel.addEventListener('toggle', () => { if (channel.open) loadChannel(channel); });
+      const form = channel.querySelector('form.ann-form');
+      if (form) form.addEventListener('submit', () => submitAnnouncement(channel));
+    });
+
+    async function loadChannel(channel) {
+      const dept = channel.getAttribute('data-dept');
+      const list = channel.querySelector('.ann-list');
+      const countEl = channel.querySelector('summary .count');
+      list.innerHTML = '<p style="color:#64748b;">Cargando…</p>';
+      try {
+        const res = await fetch('/api/announcements?depts=' + encodeURIComponent(dept) + '&limit=50', { credentials:'include' });
+        const data = res.ok ? await res.json() : [];
+        const anns = data.filter(a => a.dept === dept);
+        countEl.textContent = '(' + anns.length + ')';
+        list.innerHTML = '';
+        if (!anns.length) {
+          list.innerHTML = '<p style="color:#64748b;">No hay anuncios.</p>';
+          return;
+        }
+        for (const ann of anns) {
+          const annDiv = document.createElement('div');
+          annDiv.className = 'announcement';
+          const canDelete = (userRole === 'admin') || (userRole === 'manager' && accessible.includes(ann.dept) && ann.dept !== 'ALL');
+          annDiv.innerHTML = `
+            <div class="header">
+              <div class="title">${ann.title}</div>
+              <div class="meta">
+                <span>${ann.created_at}</span>
+                ${ann.until_date ? `<span>Vigente hasta: ${ann.until_date}</span>` : ''}
+                ${canDelete ? `<button class="btn-delete" data-id="${ann.id}">Eliminar</button>` : ''}
+              </div>
+            </div>
+            <div class="body">${ann.body}</div>
+            <div class="comments" id="comments-${ann.id}"><p style="color:#64748b;">Cargando comentarios…</p></div>
+            <form class="comment-form" data-ann-id="${ann.id}" onsubmit="return false;">
+              <textarea name="body" rows="2" maxlength="500" placeholder="Escribe un comentario" required></textarea>
+              <input type="hidden" name="reply_to_comment_id" value="">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <button type="submit" class="btn-comment">Comentar</button>
+                <button type="button" class="cancel-reply" style="display:none;">Cancelar respuesta</button>
+                <span class="status"></span>
+              </div>
+            </form>
+          `;
+          list.appendChild(annDiv);
+          loadComments(ann.id);
+          const cForm = annDiv.querySelector('form.comment-form');
+          cForm.addEventListener('submit', () => submitComment(ann.id, cForm));
+          cForm.querySelector('.cancel-reply').addEventListener('click', () => {
+            cForm.querySelector('input[name="reply_to_comment_id"]').value = '';
+            cForm.querySelector('.cancel-reply').style.display = 'none';
+          });
+        }
+        list.querySelectorAll('.btn-delete').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            if (!confirm('¿Borrar este anuncio? Esta acción no se puede deshacer.')) return;
+            try {
+              await fetch('/api/announcements/' + id, { method:'DELETE', credentials:'include' });
+              loadChannel(channel);
+            } catch (e) { console.error(e); }
+          });
+        });
+      } catch (e) {
+        console.error(e);
+        list.innerHTML = '<p style="color:#dc2626;">Error al cargar anuncios.</p>';
+        countEl.textContent = '(0)';
+      }
+    }
+
+    async function submitAnnouncement(channel) {
+      const dept = channel.getAttribute('data-dept');
+      const form = channel.querySelector('form.ann-form');
+      const statusEl = form.querySelector('.status');
+      const submitBtn = form.querySelector('button[type="submit"]');
+      statusEl.textContent = '';
+      submitBtn.disabled = true;
+      const payload = {
+        dept: dept,
+        title: form.querySelector('input[name="title"]').value.trim(),
+        body: form.querySelector('textarea[name="body"]').value.trim(),
+        until_date: form.querySelector('input[name="until_date"]').value || null
+      };
+      if (!payload.title || !payload.body) {
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = 'Llena título y mensaje.';
+        submitBtn.disabled = false;
+        return;
+      }
+      try {
+        const res = await fetch('/api/announcements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          statusEl.style.color = '#dc2626';
+          statusEl.textContent = data.error || 'Error al publicar.';
+        } else {
+          statusEl.style.color = '#16a34a';
+          statusEl.textContent = 'Publicado.';
+          form.reset();
+          loadChannel(channel);
+        }
+      } catch (e) {
+        console.error(e);
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = 'Error de red.';
+      } finally {
+        submitBtn.disabled = false;
+        setTimeout(() => { statusEl.textContent=''; statusEl.style.color=''; }, 2000);
+      }
+    }
+
+    async function loadComments(annId) {
+      const container = document.getElementById('comments-' + annId);
+      try {
+        const res = await fetch('/api/announcements/' + annId + '/comments', { credentials:'include' });
+        const data = res.ok ? await res.json() : [];
+        container.innerHTML = '';
+        if (!data.length) {
+          container.innerHTML = '<p style="color:#64748b;">Sin comentarios.</p>';
+          return;
+        }
+        const roots = data.filter(c => !c.reply_to_comment_id);
+        const replies = data.filter(c => c.reply_to_comment_id);
+        function renderComment(comment, indent) {
+          const div = document.createElement('div');
+          div.className = 'comment';
+          div.style.marginLeft = (indent * 20) + 'px';
+          div.innerHTML = `
+            <p><strong>${comment.author}</strong> <small>(${comment.author_role}) - ${comment.created_at}</small></p>
+            <p>${comment.body}</p>
+            ${(['admin','manager'].includes(userRole) && indent === 0) ? `<button class="reply-btn" data-id="${comment.id}" data-ann="${annId}">Responder</button>` : ''}
+          `;
+          return div;
+        }
+        roots.forEach(root => {
+          const elem = renderComment(root, 0);
+          container.appendChild(elem);
+          replies.filter(r => r.reply_to_comment_id === root.id).forEach(rep => {
+            const repElem = renderComment(rep, 1);
+            container.appendChild(repElem);
+          });
+        });
+        container.querySelectorAll('.reply-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const commentId = btn.getAttribute('data-id');
+            const annIdAttr = btn.getAttribute('data-ann');
+            const form = document.querySelector('form.comment-form[data-ann-id="' + annIdAttr + '"]');
+            form.querySelector('input[name="reply_to_comment_id"]').value = commentId;
+            form.querySelector('.cancel-reply').style.display = 'inline-block';
+            form.scrollIntoView({ behavior:'smooth', block:'center' });
+          });
+        });
+      } catch (e) {
+        console.error(e);
+        container.innerHTML = '<p style="color:#dc2626;">Error al cargar comentarios.</p>';
+      }
+    }
+
+    async function submitComment(annId, form) {
+      const statusEl = form.querySelector('.status');
+      const btn = form.querySelector('.btn-comment');
+      statusEl.textContent = '';
+      btn.disabled = true;
+      const payload = {
+        body: form.querySelector('textarea[name="body"]').value.trim(),
+        reply_to_comment_id: form.querySelector('input[name="reply_to_comment_id"]').value || null
+      };
+      if (!payload.body) {
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = 'Escribe un comentario.';
+        btn.disabled = false;
+        return;
+      }
+      try {
+        const res = await fetch('/api/announcements/' + annId + '/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          statusEl.style.color = '#dc2626';
+          statusEl.textContent = data.error || 'Error al comentar.';
+        } else {
+          statusEl.style.color = '#16a34a';
+          statusEl.textContent = 'Comentario publicado.';
+          form.querySelector('textarea[name="body"]').value = '';
+          form.querySelector('input[name="reply_to_comment_id"]').value = '';
+          form.querySelector('.cancel-reply').style.display = 'none';
+          loadComments(annId);
+        }
+      } catch (e) {
+        console.error(e);
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = 'Error de red.';
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => { statusEl.textContent=''; statusEl.style.color=''; }, 2000);
+      }
+    }
+  })();
+  </script>
+</section>

@@ -1,6 +1,6 @@
 {
   "name": "chc-helpdesk-minimal",
-  "version": "1.0.0",
+  "version": "0.83.railway",
   "description": "Sistema minimal de tickets (AtenDesk) - Express + MySQL",
   "main": "src/app.js",
   "scripts": {
@@ -15,7 +15,8 @@
     "express-session": "^1.18.0",
     "multer": "^2.0.2",
     "mysql2": "^3.11.0",
-    "sharp": "^0.33.4"
+    "sharp": "^0.33.4",
+    "nodemailer": "^6.9.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

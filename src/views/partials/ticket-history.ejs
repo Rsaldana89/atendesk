@@ -7,8 +7,11 @@
       <% history.forEach(h => { %>
         <li style="display:flex;gap:8px;align-items:baseline">
           <span style="min-width:180px;color:#475569"><%= new Date(h.created_at).toLocaleString() %></span>
-          <span><b><%= (h.actor_role || '').toUpperCase() %></b></span>
-          <span>pasó de <b><%= statusLabels[h.from_status] %></b> a <b><%= statusLabels[h.to_status] %></b></span>
+          <span><b><%= (typeof roleMap !== 'undefined' && roleMap[h.actor_role] ? roleMap[h.actor_role] : (h.actor_role || '')).toUpperCase() %></b></span>
+          <span>
+            <% if (h.actor_name) { %><%= h.actor_name %> <% } %>
+            pasó de <b><%= statusLabels[h.from_status] %></b> a <b><%= statusLabels[h.to_status] %></b>
+          </span>
           <% if (h.note) { %><span style="color:#475569">— <i><%= h.note %></i></span><% } %>
         </li>
       <% }) %>
