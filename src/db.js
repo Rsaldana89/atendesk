@@ -53,4 +53,12 @@ const pool = mysql.createPool({
   charset: 'utf8mb4_general_ci'
 });
 
+
+console.log('🔍 Variables de conexión:');
+console.log('Host:', host);
+console.log('Port:', port);
+console.log('User:', user);
+console.log('Database:', database);
+console.log('Password exists:', !!password);
+
 module.exports = { pool };
