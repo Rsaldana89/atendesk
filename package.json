@@ -1,6 +1,6 @@
 {
   "name": "chc-helpdesk-minimal",
-  "version": "0.83.railway",
+  "version": "0.81.0+like-incidencias",
   "description": "Sistema minimal de tickets (AtenDesk) - Express + MySQL",
   "main": "src/app.js",
   "scripts": {

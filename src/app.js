@@ -21,10 +21,8 @@ const adminUsersRoutes  = require('./routes/admin/users');
 
 const app = express();
 
-// Proxy (Railway, etc.): si TRUST_PROXY está en 1, activa el
-// reconocimiento de cabeceras de proxy para cookies seguras.  Por
-// defecto no se asume proxy.
-app.set('trust proxy', Number(process.env.TRUST_PROXY || 0));
+// Proxy (Railway, etc.)
+if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
 
 // View engine
 app.set('view engine', 'ejs');
@@ -43,11 +41,8 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    // En producción (COOKIE_SECURE=1) se utiliza SameSite=None y
-    // secure=true para que el navegador acepte la cookie en un sitio
-    // cruzado bajo HTTPS.  En local (COOKIE_SECURE=0) se usa Lax.
-    sameSite: Boolean(Number(process.env.COOKIE_SECURE || 0)) ? 'none' : 'lax',
-    secure: Boolean(Number(process.env.COOKIE_SECURE || 0))
+    sameSite: 'lax',
+    secure: !!process.env.COOKIE_SECURE // 1 en prod con HTTPS
   }
 }));
 
