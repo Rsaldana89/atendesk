@@ -33,7 +33,7 @@ const password =
   process.env.MYSQLPASSWORD;
 
 const database =
-  process.env.DB_NAME || process.env.MYSQLDATABASE || 'soportebd';
+  process.env.DB_NAME || process.env.MYSQLDATABASE || 'soportebd' || 'railway';
 
 if (!password) {
   throw new Error(
