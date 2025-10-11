@@ -8,7 +8,7 @@ const host = process.env.DB_HOST || 'localhost';
 const port = Number(process.env.DB_PORT || 3306);
 const user = process.env.DB_USER || 'root';
 const password = process.env.DB_PASSWORD || process.env.DB_PASS || '';
-const database = process.env.DB_NAME || 'soportebd';
+const database = process.env.DB_NAME || 'railway';
 
 if (!password && process.env.NODE_ENV !== 'development') {
   console.warn('⚠️ DB_PASSWORD no está definido (usando vacío).');
