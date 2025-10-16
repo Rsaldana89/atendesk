@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../../db');
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
 
 function requireAdmin(req, res, next) {
   if (req.session.user && req.session.user.role === 'admin') return next();
@@ -103,5 +106,47 @@ router.post('/users/save', requireAdmin, async (req, res) => {
     res.status(500).send('Error al guardar usuario');
   }
 });
+
+
+// 👉 GET /admin/backup
+router.get('/backup', requireAdmin, (req, res) => {
+  // Nombre de archivo con marca de tiempo legible (YYYY-MM-DD_HH-MM-SS)
+  const timestamp = new Date().toISOString().replace(/[:T]/g, '-').replace(/\..+/, '');
+  const filename = `backup-${timestamp}.sql`;
+  const backupDir = path.join(__dirname, '..', '..', 'backup');
+  const filePath = path.join(backupDir, filename);
+
+  try {
+    fs.mkdirSync(backupDir, { recursive: true });
+  } catch (err) {
+    console.error('Error al crear directorio de respaldo:', err);
+    return res.status(500).send('No se pudo crear la carpeta de respaldo');
+  }
+
+  const host = process.env.DB_HOST || 'localhost';
+  const port = process.env.DB_PORT || '3306';
+  const user = process.env.DB_USER || process.env.DB_USERNAME || 'root';
+  const password = process.env.DB_PASSWORD || process.env.DB_PASS || '';
+  const database = process.env.DB_NAME || 'soportebd';
+
+  // Construye comando mysqldump. Si no hay password, se omite -p
+  const pwdPart = password ? `-p${password}` : '';
+  const dumpCmd = `mysqldump -h ${host} -P ${port} -u ${user} ${pwdPart} ${database} > "${filePath}"`;
+
+  exec(dumpCmd, (error, stdout, stderr) => {
+    if (error) {
+      console.error('Error ejecutando mysqldump:', error, stderr);
+      return res.status(500).send('Error al generar el respaldo de la base de datos');
+    }
+    // Descargar el archivo una vez generado
+    res.download(filePath, filename, err => {
+      if (err) {
+        console.error('Error al enviar archivo de respaldo:', err);
+        return res.status(500).send('No se pudo enviar el respaldo');
+      }
+    });
+  });
+});
+
 
 module.exports = router;
