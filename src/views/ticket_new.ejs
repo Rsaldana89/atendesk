@@ -86,7 +86,51 @@
     /* —— Evidencias —— */
     .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
     .ev-thumb{width:100%;height:auto;border-radius:8px;border:1px solid #e5e7eb}
+
+    /* —— Estado ENVIANDO: botón y overlay —— */
+    .btn-primary.sending{
+      background:#7c3aed !important; /* morado */
+      border-color:#6d28d9 !important;
+      opacity:.95;
+      cursor:not-allowed;
+    }
+    .btn-primary .spinner{
+      display:inline-block;
+      width:1em; height:1em;
+      border:.18em solid rgba(255,255,255,.45);
+      border-top-color:#fff;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+      vertical-align:-2px;
+      margin-right:.5em;
+    }
+    @keyframes spin{ to { transform: rotate(360deg) } }
+
+    .sending-overlay{
+      position:fixed; inset:0; z-index:9999;
+      background:rgba(15,23,42,.35);
+      backdrop-filter:saturate(120%) blur(2px);
+      display:none; align-items:center; justify-content:center;
+    }
+    .sending-overlay.active{ display:flex; }
+    .sending-overlay .box{
+      background:#0b1220; color:#e5e7eb; border:1px solid rgba(255,255,255,.08);
+      padding:18px 22px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.25);
+      display:flex; align-items:center; gap:12px; font-weight:600;
+    }
+    .sending-overlay .box .big-spinner{
+      width:20px; height:20px; border:3px solid rgba(255,255,255,.3);
+      border-top-color:#fff; border-radius:50%; animation:spin 0.9s linear infinite;
+    }
   </style>
+
+  <!-- Overlay de envío -->
+  <div id="sending-overlay" class="sending-overlay" aria-hidden="true">
+    <div class="box" role="status" aria-live="polite">
+      <span class="big-spinner"></span>
+      <span>Enviando ticket…</span>
+    </div>
+  </div>
 
   <div class="nt-grid">
     <!-- —— Columna izquierda: formulario (dividido en bloques) —— -->
@@ -238,17 +282,17 @@
     (function () {
       // —— Helpers
       const $ = s => document.querySelector(s);
-      const subjectHidden = $('#subject');          // input oculto que manda al backend
-      const subjectSel    = $('#subject_select');   // select visible (asunto)
+      const subjectHidden = $('#subject');
+      const subjectSel    = $('#subject_select');
       const desc = $('#description');
       const descCount = $('#desc-count');
       const form = $('#ticket-form');
       const dep = document.getElementById('department_id');
       const depNote = document.getElementById('dep-note');
       const creator = document.getElementById('creator_name');
-      const catHidden = document.getElementById('category');        // oculto para backend
-      const catBadge  = document.getElementById('category_badge');  // badge informativo
-      const catSel    = document.getElementById('category_select'); // select de categoría
+      const catHidden = document.getElementById('category');
+      const catBadge  = document.getElementById('category_badge');
+      const catSel    = document.getElementById('category_select');
       const urgencyHidden = document.getElementById('urgency');
       const urgencyBadge  = document.getElementById('urgency_badge');
       const deptPillText  = document.getElementById('dept-pill-text');
@@ -297,7 +341,7 @@
         evInput.addEventListener('change', ()=>{ renderPreview(evInput.files); updateCount(); });
       }
 
-      // —— Reglas fallback por palabras/dep (si no hay match en catálogo)
+      // —— Reglas fallback por palabras/dep
       const CATEGORY_BY_KEYWORD = [
         { re: /(impresora|printer|toner)/i, category:'Impresión' },
         { re: /(correo|email|outlook)/i,    category:'Correo' },
@@ -344,7 +388,7 @@
         dep.blur();
       }
 
-      // —— Cargar CATEGORÍAS únicas del catálogo según departamento
+      // —— Cargar CATEGORÍAS por depto
       function fillCategoriesForDept() {
         if (!dep.disabled && dep.value) { lockDeptSelect('Fijado'); }
 
@@ -454,7 +498,7 @@
         setUrgency(opt.dataset.urgency  || 'MEDIA');
       }
 
-      /* —— Contador (min 10) — ya NO bloquea el botón aquí —— */
+      /* —— Contador —— */
       function updateCount(){
         const min = parseInt(desc.getAttribute('minlength'), 10) || 10;
         const max = parseInt(desc.getAttribute('maxlength'), 10) || 2000;
@@ -481,40 +525,33 @@
       function validateInline(){
         let firstInvalid = null;
 
-        // Nombre
         if (!creator.value.trim() || creator.value.trim().length < 3){
           if (!firstInvalid) firstInvalid = creator;
           setError(creator, 'Escribe tu nombre completo (mín. 3).', 'err-creator');
         } else setError(creator, '', 'err-creator');
 
-        // Depto
         if (!dep.value){
           if (!firstInvalid) firstInvalid = dep;
           setError(dep, 'Selecciona un departamento.', 'err-dept');
         } else setError(dep, '', 'err-dept');
 
-        // Categoría
         if (!catSel.value){
           if (!firstInvalid) firstInvalid = catSel;
           setError(catSel, 'Selecciona una categoría.', 'err-cat');
         } else setError(catSel, '', 'err-cat');
 
-        // Asunto
         if (!subjectSel.value){
           if (!firstInvalid) firstInvalid = subjectSel;
           setError(subjectSel, 'Selecciona un asunto.', 'err-subj');
         } else setError(subjectSel, '', 'err-subj');
 
-        // Descripción
         const min = parseInt(desc.getAttribute('minlength'), 10) || 10;
         if (!desc.value.trim() || desc.value.trim().length < min){
           if (!firstInvalid) firstInvalid = desc;
           setError(desc, `La descripción debe tener al menos ${min} caracteres.`, 'err-desc');
         } else setError(desc, '', 'err-desc');
 
-        // Evidencias
-        evidenciasOk(); // muestra mensaje si hay error
-
+        evidenciasOk();
         return firstInvalid;
       }
 
@@ -569,7 +606,7 @@
         }, 0);
       });
 
-      // ✅ Submit: valida, muestra mensajes nativos e inline y hace scroll al primer error
+      // ✅ Submit con “Enviando…” + overlay + anti-doble clic
       form.addEventListener('submit', (e) => {
         if (catSel && catSel.value) setCategory(catSel.value);
         ensureDeptMirror();
@@ -582,7 +619,33 @@
             firstInvalid.focus({preventScroll:false});
             firstInvalid.scrollIntoView({behavior:'smooth', block:'center'});
           }
+          return;
         }
+
+        // Anti doble envío
+        if (form.dataset.submitted === '1'){
+          e.preventDefault();
+          return;
+        }
+        form.dataset.submitted = '1';
+
+        // UI "Enviando…"
+        const submitBtn = document.getElementById('btn-submit');
+        const otherBtns = document.querySelectorAll('.actions .btn:not(#btn-submit)');
+        const overlay   = document.getElementById('sending-overlay');
+
+        submitBtn.classList.add('sending');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span>Enviando…';
+
+        otherBtns.forEach(b => { b.disabled = true; });
+        form.setAttribute('aria-busy', 'true');
+
+        if (overlay){
+          overlay.classList.add('active');
+          overlay.setAttribute('aria-hidden', 'false');
+        }
+        // No se hace preventDefault: dejamos que el navegador envíe el form (multipart)
       });
 
       // —— Si el usuario sólo tiene 1 departamento, bloquear el select y crear hidden

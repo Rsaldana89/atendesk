@@ -1,94 +1,223 @@
-<style>
-  .login-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: calc(100vh - 120px); /* Resta el alto de la barra y footer */
-  }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión — AtenDesk CHC</title>
 
-  .login-card {
-    background: #0d1b2a;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
-    width: 100%;
-    max-width: 380px;
-  }
+  <style>
+    .login-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: calc(100vh - 120px);
+    }
 
-  /* --- Logo --- */
-  .login-logo {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 1rem;
-  }
-  .login-logo img {
-    width: 160px;              /* tamaño base */
-    max-width: 70%;
-    height: auto;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
-    user-select: none;
-    -webkit-user-drag: none;
-  }
+    .login-card {
+      background: #0d1b2a;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 380px;
+    }
 
-  .login-card h2 {
-    color: #fff;
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
+    /* --- Logo --- */
+    .login-logo {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .login-logo img {
+      width: 160px;
+      max-width: 70%;
+      height: auto;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+      user-select: none;
+      -webkit-user-drag: none;
+    }
 
-  .login-card label {
-    color: #fff;
-    font-weight: 600;
-  }
+    .login-card h2 {
+      color: #fff;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
 
-  .login-card input {
-    width: 100%;
-    padding: 0.7rem;
-    margin-bottom: 1rem;
-    border: none;
-    border-radius: 5px;
-  }
+    .login-card label {
+      color: #fff;
+      font-weight: 600;
+    }
 
-  .login-card button {
-    width: 100%;
-    padding: 0.8rem;
-    background: #3b82f6;
-    border: none;
-    color: white;
-    font-size: 1rem;
-    border-radius: 5px;
-    cursor: pointer;
-  }
+    .login-card input {
+      width: 100%;
+      padding: 0.7rem;
+      margin-bottom: 1rem;
+      border: none;
+      border-radius: 5px;
+    }
 
-  .login-card .hint {
-    font-size: 0.85rem;
-    color: #ddd;
-    margin-top: 0.5rem;
-    text-align: center;
-  }
-</style>
+    .login-card button {
+      width: 100%;
+      padding: 0.8rem;
+      background: #3b82f6;
+      border: none;
+      color: white;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .login-card button:hover {
+      background: #2563eb;
+    }
 
-<div class="login-wrapper">
-  <div class="login-card">
+    .login-card .hint {
+      font-size: 0.85rem;
+      color: #ddd;
+      margin-top: 0.5rem;
+      text-align: center;
+    }
 
-    <!-- Logo -->
-    <div class="login-logo">
-      <img src="/img/atendesk-logochc.png" alt="AtenDesk CHC">
+    /* --- Error box --- */
+    .login-card .error-box {
+      display: none;
+      background: #1f2937;
+      color: #fecaca;
+      border: 1px solid #f87171;
+      padding: .6rem .8rem;
+      border-radius: 6px;
+      margin: .5rem 0 .75rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* --- Botón cargando --- */
+    .btn--loading {
+      opacity: .75;
+      cursor: not-allowed;
+    }
+    .button-spinner {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      border: .18em solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      vertical-align: -2px;
+      margin-right: .5em;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+
+      <!-- Logo -->
+      <div class="login-logo">
+        <img src="/img/atendesk-logochc.png" alt="AtenDesk CHC">
+      </div>
+
+      <h2>Iniciar sesión</h2>
+
+      <form method="post" action="/login" id="login-form">
+        <label for="username">Usuario</label>
+        <input type="text" id="username" name="username" placeholder="Usuario" required>
+
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" placeholder="Contraseña" required>
+
+        <!-- Contenedor para el error -->
+        <div id="error-box" class="error-box" role="alert" aria-live="polite"></div>
+
+        <button type="submit" id="login-btn">Entrar</button>
+
+        <p class="hint">Si olvidaste tus accesos consulta con tu supervisor</p>
+      </form>
     </div>
-
-    <h2>Iniciar sesión</h2>
-
-    <form method="post" action="/login">
-      <label for="username">Usuario</label>
-      <input type="text" id="username" name="username" placeholder="Usuario" required>
-
-      <label for="password">Contraseña</label>
-      <input type="password" id="password" name="password" placeholder="Contraseña" required>
-
-      <button type="submit">Entrar</button>
-
-      <p class="hint">
-        Si olvidaste tus accesos consulta con tu supervisor</p>
-    </form>
   </div>
-</div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('login-form');
+      const username = document.getElementById('username');
+      const password = document.getElementById('password');
+      const btn = document.getElementById('login-btn');
+      const errorBox = document.getElementById('error-box');
+
+      const originalBtnText = btn.textContent;
+
+      const setLoading = (loading) => {
+        if (loading) {
+          btn.classList.add('btn--loading');
+          btn.disabled = true;
+          username.readOnly = true;
+          password.readOnly = true;
+          btn.innerHTML = '<span class="button-spinner"></span>Verificando...';
+        } else {
+          btn.classList.remove('btn--loading');
+          btn.disabled = false;
+          username.readOnly = false;
+          password.readOnly = false;
+          btn.innerHTML = originalBtnText;
+        }
+      };
+
+      const showError = (msg) => {
+        errorBox.textContent = msg;
+        errorBox.style.display = 'block'; // persiste
+      };
+
+      const clearError = () => {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+      };
+
+      username.addEventListener('input', clearError);
+      password.addEventListener('input', clearError);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearError();
+
+        const user = username.value.trim();
+        const pass = password.value.trim();
+        if (!user || !pass) {
+          showError('Completa usuario y contraseña.');
+          return;
+        }
+
+        setLoading(true);
+
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({ username: user, password: pass })
+          });
+
+          if (res.ok) {
+            window.location.assign('/dashboard');
+            return;
+          }
+
+          if (res.status === 401 || res.status === 404) {
+            showError('Usuario o contraseña no coinciden.');
+          } else {
+            showError('No se pudo iniciar sesión. Inténtalo de nuevo.');
+          }
+        } catch (err) {
+          showError('Error de conexión con el servidor.');
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
