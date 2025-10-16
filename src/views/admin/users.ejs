@@ -1,7 +1,11 @@
-
 <!-- ============ RESTO: ADMIN USUARIOS ============ -->
 <h1 style="margin-top:24px;">Administración de Usuarios</h1>
-<button type="button" class="mini-btn" onclick="openUserModal()">+ Crear nuevo usuario</button>
+
+<!-- Acciones arriba: respaldo y crear usuario -->
+<div class="admin-actions" style="margin:8px 0 16px; display:flex; gap:8px; flex-wrap:wrap;">
+  <a href="/admin/backup" class="mini-btn" title="Descargar respaldo SQL">💾 Respaldo de Base de Datos</a>
+  <button type="button" class="mini-btn" onclick="openUserModal()">+ Crear nuevo usuario</button>
+</div>
 
   <!-- Estilos generales para tablas y controles en esta página.  Se incluyen aquí
        porque la sección de anuncios ha sido movida a su propia vista.  Las
@@ -86,6 +90,9 @@
     input:focus, select:focus, textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
     @keyframes fadeIn { from {background: rgba(0,0,0,0);} to {background: rgba(0,0,0,.45);} }
     @keyframes scaleIn { from {transform: scale(.95);} to {transform: scale(1);} }
+
+    /* Acciones arriba scrollable en móvil */
+    .admin-actions { overflow-x: auto; }
   </style>
 
 <!-- MANAGERS -->
@@ -332,4 +339,3 @@
   setTimeout(function() { if (typeof updateCategoryUI === 'function') updateCategoryUI(); }, 0);
 })();
 </script>
-
