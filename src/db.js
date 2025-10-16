@@ -1,18 +1,12 @@
-// Simplified DB config (like 'incidencias'): only DB_* variables
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Local defaults: soportebd; Railway: set DB_* in app variables
 const host = process.env.DB_HOST || 'localhost';
 const port = Number(process.env.DB_PORT || 3306);
 const user = process.env.DB_USER || 'root';
 const password = process.env.DB_PASSWORD || process.env.DB_PASS || '';
 const database = process.env.DB_NAME || 'soportebd';
-
-if (!password && process.env.NODE_ENV !== 'development') {
-  console.warn('⚠️ DB_PASSWORD no está definido (usando vacío).');
-}
 
 const pool = mysql.createPool({
   host, port, user, password, database,
@@ -22,11 +16,23 @@ const pool = mysql.createPool({
   charset: 'utf8mb4_general_ci'
 });
 
-// Quick connection check
-pool.query('SELECT 1').then(() => {
-  console.log('✅ Conexión MySQL OK →', host + ':' + port, '/', database);
-}).catch(err => {
-  console.error('❌ Error MySQL:', err.code || err.message);
+// Fijar TZ -06:00 por conexión (callback API aquí)
+pool.on('connection', (conn) => {
+  conn.query("SET time_zone = '-06:00'", (err) => {
+    if (err) {
+      console.error('⚠️ No se pudo fijar zona horaria -06:00:', err.message);
+    }
+  });
 });
+
+// Prueba rápida (sí es promise aquí)
+(async () => {
+  try {
+    const [rows] = await pool.query('SELECT @@session.time_zone tz, NOW() ahora');
+    console.log(`✅ MySQL OK → ${host}:${port}/${database} | TZ: ${rows[0].tz} | NOW(): ${rows[0].ahora}`);
+  } catch (err) {
+    console.error('❌ Error MySQL:', err.code || err.message);
+  }
+})();
 
 module.exports = { pool };
