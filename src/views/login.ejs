@@ -110,6 +110,31 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+        .login-logo img {
+      width: 160px;
+      max-width: 70%;
+      height: auto;
+      border-radius: 18px; /* Bordes redondeados */
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+      user-select: none;
+      -webkit-user-drag: none;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .login-logo img:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.7); /* resplandor azul */
+      filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.6));
+    }
+
+    @media (max-width: 600px) {
+      .login-logo img:hover {
+        transform: scale(1.03);
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -119,7 +144,7 @@
 
       <!-- Logo -->
       <div class="login-logo">
-        <img src="/img/atendesk-logochc.png" alt="AtenDesk CHC">
+        <img src="/img/soporte360chc.png" alt="AtenDesk CHC">
       </div>
 
       <h2>Iniciar sesión</h2>
