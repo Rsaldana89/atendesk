@@ -314,12 +314,64 @@ reportsRouter.get('/api/stats', async (req, res) => {
     );
     const topDepts = topDeptRows.map(r => ({ department: r.department || 'Sin depto', tickets: r.tickets }));
 
+    // Nuevas estadísticas: frecuencia de creación de tickets por reportante (username)
+    // y top de categorías y asuntos.  Se calculan aplicando los mismos filtros
+    // de fecha, estados y departamentos que el resto de estadísticas.
+    // Reutilizamos la cláusula whereClause construida previamente con
+    // whereParts y params.
+    let reporters = [];
+    let topCategories = [];
+    let topSubjects   = [];
+    try {
+      // Tickets creados por usuario (reportante) - limit 10
+      const [reporterRows] = await pool.query(
+        `SELECT u.username AS username, COUNT(*) AS tickets
+           FROM tickets t
+           JOIN users u ON u.id = t.created_by
+           ${whereClause}
+           GROUP BY u.username
+           ORDER BY tickets DESC
+           LIMIT 10`,
+        params
+      );
+      reporters = reporterRows.map(r => ({ username: r.username || 'Sin usuario', tickets: r.tickets }));
+
+      // Top categorías
+      const [catRows] = await pool.query(
+        `SELECT t.category AS category, COUNT(*) AS tickets
+           FROM tickets t
+           ${whereClause}
+           GROUP BY t.category
+           ORDER BY tickets DESC
+           LIMIT 10`,
+        params
+      );
+      topCategories = catRows.map(r => ({ category: r.category || 'Sin categoría', tickets: r.tickets }));
+
+      // Top asuntos (asunto = subject)
+      const [subjRows] = await pool.query(
+        `SELECT t.subject AS subject, COUNT(*) AS tickets
+           FROM tickets t
+           ${whereClause}
+           GROUP BY t.subject
+           ORDER BY tickets DESC
+           LIMIT 10`,
+        params
+      );
+      topSubjects = subjRows.map(r => ({ subject: r.subject || 'Sin asunto', tickets: r.tickets }));
+    } catch (subErr) {
+      console.error('Error calculando estadísticas de reportantes/categorías/asuntos:', subErr);
+    }
+
     res.json({
       totals,
       avgResolutionHours,
       avgResolutionByDept,
       solvedByUser,
-      topDepts
+      topDepts,
+      reporters,
+      topCategories,
+      topSubjects
     });
   } catch (e) {
     console.error('GET /reports/api/stats error:', e);
@@ -501,6 +553,55 @@ reportsRouter.get('/api/export', async (req, res) => {
     topDeptRows.forEach(r => {
       add(['TopDept', r.department || '', r.tickets, '']);
     });
+
+    // Reportantes (tickets creados por usuario) – se calculan usando el mismo
+    // filtro de departamentos, fechas y estados.  Limitamos a los 10 más
+    // frecuentes para mantener el reporte manejable.
+    try {
+      const [reporterRows] = await pool.query(
+        `SELECT u.username AS username, COUNT(*) AS tickets
+           FROM tickets t
+           JOIN users u ON u.id = t.created_by
+           ${whereClause}
+           GROUP BY u.username
+           ORDER BY tickets DESC
+           LIMIT 10`,
+        params
+      );
+      reporterRows.forEach(r => {
+        add(['Reporters', r.username || 'Sin usuario', r.tickets, '']);
+      });
+
+      // Top categorías
+      const [catRows] = await pool.query(
+        `SELECT t.category AS category, COUNT(*) AS tickets
+           FROM tickets t
+           ${whereClause}
+           GROUP BY t.category
+           ORDER BY tickets DESC
+           LIMIT 10`,
+        params
+      );
+      catRows.forEach(r => {
+        add(['TopCat', r.category || 'Sin categoría', r.tickets, '']);
+      });
+
+      // Top asuntos
+      const [subjRows] = await pool.query(
+        `SELECT t.subject AS subject, COUNT(*) AS tickets
+           FROM tickets t
+           ${whereClause}
+           GROUP BY t.subject
+           ORDER BY tickets DESC
+           LIMIT 10`,
+        params
+      );
+      subjRows.forEach(r => {
+        add(['TopSubject', r.subject || 'Sin asunto', r.tickets, '']);
+      });
+    } catch (errStats) {
+      console.error('Error agregando secciones de reportantes/categorías/asuntos al CSV de estadísticas:', errStats);
+    }
 
     // Exportar estadísticas en formato XLS.  Se conserva la estructura de
     // filas separadas por comas y se incluye un BOM UTF-8.  La extensión
@@ -694,9 +795,19 @@ app.get('/api/announcements/:id/comments', requireAuth, async (req, res) => {
       [id]
     );
     if (!ann) return res.status(404).json({ error: 'Anuncio no encontrado' });
-    // Si el anuncio está inactivo o expirado, no permitimos comentarios
-    if (ann.active === 0 || (ann.until_date && new Date(ann.until_date) < new Date())) {
+    // Si el anuncio está inactivo o expirado, no permitimos comentarios.
+    // Para considerar vigente todo el día final (hasta las 23:59:59),
+    // calculamos la fecha de expiración agregando 23:59:59 a until_date.
+    // Si la fecha actual supera ese momento, el anuncio se considera no vigente.
+    if (ann.active === 0) {
       return res.status(404).json({ error: 'Anuncio no vigente' });
+    }
+    if (ann.until_date) {
+      // Construir un objeto Date al final del día de until_date.
+      const expiry = new Date(`${ann.until_date}T23:59:59`);
+      if (new Date() > expiry) {
+        return res.status(404).json({ error: 'Anuncio no vigente' });
+      }
     }
     const [rows] = await pool.query(
       `SELECT c.id,
@@ -737,8 +848,16 @@ app.post('/api/announcements/:id/comments', requireAuth, async (req, res) => {
       [announcementId]
     );
     if (!ann) return res.status(404).json({ error: 'Anuncio no encontrado' });
-    if (ann.active === 0 || (ann.until_date && new Date(ann.until_date) < new Date())) {
+    // Si el anuncio está inactivo o expirado, no permitimos comentarios.
+    // Igual que en GET, consideramos vigente el día completo hasta las 23:59:59.
+    if (ann.active === 0) {
       return res.status(404).json({ error: 'Anuncio no vigente' });
+    }
+    if (ann.until_date) {
+      const expiry = new Date(`${ann.until_date}T23:59:59`);
+      if (new Date() > expiry) {
+        return res.status(404).json({ error: 'Anuncio no vigente' });
+      }
     }
     // Si es respuesta, valida permisos y existencia del comentario padre
     if (replyId) {

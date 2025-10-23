@@ -117,15 +117,16 @@ router.get('/', async (req, res) => {
     const status = String(req.query.status || '').trim();
     const department = String(req.query.department || '').trim();
     // Filtros de fechas: permite seleccionar un rango de fechas de apertura.  Si
-    // no se proporcionan en la query, se establece un valor por defecto que
-    // corresponde al mes en curso (del primer día al último día).
-    // Se aceptan tanto `start_date`/`end_date` como `start`/`end` por
-    // compatibilidad con rutas de exportación existentes.
+    // no se proporcionan en la query, se establece por defecto el rango de los
+    // últimos 30 días (incluyendo la fecha actual) tal y como ocurre en la
+    // pantalla de estadísticas.  Se aceptan tanto `start_date`/`end_date` como
+    // `start`/`end` por compatibilidad con rutas de exportación existentes.
     const now = new Date();
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastOfMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const defaultStartDate = firstOfMonth.toISOString().slice(0, 10);
-    const defaultEndDate   = lastOfMonth.toISOString().slice(0, 10);
+    // Fin del rango por defecto: hoy
+    const defaultEndDate = now.toISOString().slice(0, 10);
+    // Inicio del rango por defecto: 29 días antes (30 días en total)
+    const prev = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
+    const defaultStartDate = prev.toISOString().slice(0, 10);
     const startDate = String(req.query.start_date || req.query.start || defaultStartDate).trim();
     const endDate   = String(req.query.end_date   || req.query.end   || defaultEndDate).trim();
 
@@ -142,6 +143,8 @@ router.get('/', async (req, res) => {
       abierto: 't.opened_at',
       reporter: 'u.full_name',
       reportante: 'u.full_name',
+      solved_at: 't.solved_at',
+      solucionado: 't.solved_at'
     };
     const orderBy   = orderMap[sort] || 't.opened_at';
     const direction = dirStr === 'asc' ? 'ASC' : 'DESC';
@@ -195,6 +198,7 @@ router.get('/', async (req, res) => {
         d.name     AS department,
         t.status,
         t.opened_at,
+        t.solved_at,
         u.full_name AS created_by_name,
         a.full_name AS assigned_to_name
       FROM tickets t
@@ -258,15 +262,14 @@ router.get('/requested', async (req, res) => {
     const dirStr = String(req.query.dir || 'desc').toLowerCase();
     const status = String(req.query.status || '').trim();
     const department = String(req.query.department || '').trim();
-    // Filtros de fechas: igual que en el listado por atender, permite fijar un
-    // rango de fechas para la apertura de tickets.  Si no se provee se
-    // utilizará el mes actual por defecto.  Acepta `start_date`/`end_date` o
-    // `start`/`end` como aliases.
+    // Filtros de fechas: igual que en el listado por atender.  Si no se provee
+    // se utilizará por defecto el rango de los últimos 30 días (incluyendo
+    // la fecha actual) para mostrar resultados recientes.  Se aceptan
+    // `start_date`/`end_date` o `start`/`end` como aliases.
     const now = new Date();
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastOfMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const defaultStartDate = firstOfMonth.toISOString().slice(0, 10);
-    const defaultEndDate   = lastOfMonth.toISOString().slice(0, 10);
+    const defaultEndDate = now.toISOString().slice(0, 10);
+    const prev = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
+    const defaultStartDate = prev.toISOString().slice(0, 10);
     const startDate = String(req.query.start_date || req.query.start || defaultStartDate).trim();
     const endDate   = String(req.query.end_date   || req.query.end   || defaultEndDate).trim();
 
@@ -283,6 +286,8 @@ router.get('/requested', async (req, res) => {
       abierto: 't.opened_at',
       reporter: 'u.full_name',
       reportante: 'u.full_name',
+      solved_at: 't.solved_at',
+      solucionado: 't.solved_at'
     };
     const orderBy   = orderMap[sort] || 't.opened_at';
     const direction = dirStr === 'asc' ? 'ASC' : 'DESC';
@@ -332,6 +337,7 @@ router.get('/requested', async (req, res) => {
         d.name     AS department,
         t.status,
         t.opened_at,
+        t.solved_at,
         u.full_name AS created_by_name,
         a.full_name AS assigned_to_name
       FROM tickets t
@@ -496,13 +502,16 @@ router.post('/new', upload.array('evidencias', MAX_FILES), async (req, res) => {
 
       // Notificar a los usuarios según reglas de notificaciones.
       try {
-        await notifyByConfig(pool, {
+      await notifyByConfig(pool, {
           id: ticketId,
           department_id: depId,
           department_name: destDept?.name || '',
           category: finalCategory,
           subject: subject.trim(),
           creator_name: creator_name.trim(),
+          // Incluye también el nombre de usuario del reportante para ser
+          // mostrado en las notificaciones de correo
+          creator_username: req.session.user?.username || ''
         }, 'created', { skipUserIds: [userId] });
       } catch (notifyErr) {
         console.error('Error notificando ticket:', notifyErr);
@@ -594,9 +603,12 @@ router.get('/:id(\\d+)', async (req, res) => {
     const userRole = normRole(req.session.user?.role || '');
 
     // Si es admin o manager, arma lista de asignables del mismo depto.
+    // Para managers: sólo deben poder asignar a sí mismos o a agentes del
+    // departamento (no a otros managers).  Para admin mantenemos el
+    // comportamiento actual, permitiendo ver tanto agentes como managers.
     let assignables = [];
     try {
-      if (userRole === ROLES.ADMIN || userRole === ROLES.MANAGER) {
+      if (userRole === ROLES.ADMIN) {
         const [rows2] = await pool.query(
           `SELECT u.id, u.full_name, u.role
              FROM users u
@@ -604,6 +616,18 @@ router.get('/:id(\\d+)', async (req, res) => {
             WHERE u.role IN ('agent','manager') AND uda.department_id = ?
             ORDER BY u.full_name`,
           [row.department_id]
+        );
+        assignables = rows2 || [];
+      } else if (userRole === ROLES.MANAGER) {
+        // Selecciona agentes del departamento o el propio manager (por su id).
+        const currentUserId = req.session.user?.id || 0;
+        const [rows2] = await pool.query(
+          `SELECT u.id, u.full_name, u.role
+             FROM users u
+             JOIN user_department_access uda ON uda.user_id = u.id
+            WHERE (u.role IN ('agent','agente') OR u.id = ?) AND uda.department_id = ?
+            ORDER BY u.full_name`,
+          [currentUserId, row.department_id]
         );
         assignables = rows2 || [];
       }
@@ -764,7 +788,7 @@ router.post('/:id/transition', async (req, res) => {
         if (to === STATES.CERRADO) {
           const [[trow]] = await pool.query(
             `SELECT t.id, t.department_id, d.name AS department_name, t.category,
-                    t.subject, u.full_name AS creator_name
+                    t.subject, u.full_name AS creator_name, u.username AS creator_username
                FROM tickets t
                JOIN departments d ON d.id = t.department_id
                JOIN users u ON u.id = t.created_by
@@ -779,6 +803,7 @@ router.post('/:id/transition', async (req, res) => {
               category: trow.category,
               subject: trow.subject,
               creator_name: trow.creator_name,
+              creator_username: trow.creator_username
             }, 'closed', { skipUserIds: [user.id] });
           }
         }
@@ -882,6 +907,7 @@ router.get('/:id/export', async (req, res) => {
     add(['Ticket','Abierto', ticket.opened_at, '']);
     if (ticket.updated_at) add(['Ticket','Actualizado', ticket.updated_at, '']);
     if (ticket.closed_at) add(['Ticket','Cerrado', ticket.closed_at, '']);
+    if (ticket.solved_at) add(['Ticket','Solucionado', ticket.solved_at, '']);
     add(['Ticket','Descripción', ticket.description, '']);
     rows.push('');
 
@@ -1003,7 +1029,9 @@ router.get('/export', async (req, res) => {
       opened_at: 't.opened_at',
       abierto: 't.opened_at',
       reporter: 'u.full_name',
-      reportante: 'u.full_name'
+      reportante: 'u.full_name',
+      solved_at: 't.solved_at',
+      solucionado: 't.solved_at'
     };
     const orderBy   = orderMap[sort] || 't.opened_at';
     const direction = dirStr === 'asc' ? 'ASC' : 'DESC';
@@ -1017,6 +1045,7 @@ router.get('/export', async (req, res) => {
          d.name     AS department,
          t.status,
          t.opened_at,
+         t.solved_at,
          u.full_name AS created_by_name,
          a.full_name AS assigned_to_name
        FROM tickets t
@@ -1058,8 +1087,8 @@ router.get('/export', async (req, res) => {
     add(['Meta','Fecha hasta', end   || '—', '']);
     out.push('');
 
-    // Encabezado de datos
-    add(['ID','Asunto','Categoría','Departamento','Estatus','Atendiendo','Abierto','Reportante']);
+    // Encabezado de datos: incluye columna de fecha de solución
+    add(['ID','Asunto','Categoría','Departamento','Estatus','Atendiendo','Abierto','Solucionado','Reportante']);
     // Filas de datos
     rows.forEach(r => {
       add([
@@ -1070,6 +1099,7 @@ router.get('/export', async (req, res) => {
         r.status,
         r.assigned_to_name || '',
         r.opened_at ? new Date(r.opened_at).toLocaleString('es-MX', { timeZone: tz }) : '',
+        r.solved_at ? new Date(r.solved_at).toLocaleString('es-MX', { timeZone: tz }) : '',
         r.created_by_name || ''
       ]);
     });
@@ -1285,6 +1315,7 @@ router.get('/exportDetailed', async (req, res) => {
       add(['Ticket','Abierto', fmt(ticket.opened_at), '']);
       if (ticket.updated_at) add(['Ticket','Actualizado', fmt(ticket.updated_at), '']);
       if (ticket.closed_at) add(['Ticket','Cerrado', fmt(ticket.closed_at), '']);
+        if (ticket.solved_at) add(['Ticket','Solucionado', fmt(ticket.solved_at), '']);
       add(['Ticket','Descripción', ticket.description || '', '']);
       rows.push('');
       // Historial

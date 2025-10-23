@@ -198,7 +198,11 @@
               <div class="title">${ann.title}</div>
               <div class="meta">
                 <span>${ann.created_at}</span>
-                ${ann.until_date ? `<span>Vigente hasta: ${ann.until_date}</span>` : ''}
+                ${ann.until_date ? `<span>Vigente hasta: ${(() => {
+                  // Convierte YYYY-MM-DD a DD-MM-YYYY para mostrar el mismo formato que la entrada.
+                  const parts = ann.until_date.split('-');
+                  return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : ann.until_date;
+                })()}</span>` : ''}
                 ${canDelete ? `<button class="btn-delete" data-id="${ann.id}">Eliminar</button>` : ''}
               </div>
             </div>

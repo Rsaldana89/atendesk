@@ -97,6 +97,11 @@
           </a>
         </th>
         <th>
+          <a href="?<%= qs({sort:'solved_at',dir:dirFor('solved_at')}) %>">
+            Solucionado <%= (sort==='solved_at'||sort==='solucionado') ? (dir==='asc'?'▲':'▼') : '' %>
+          </a>
+        </th>
+        <th>
           <a href="?<%= qs({sort:'reporter',dir:dirFor('reporter')}) %>">
             Reportante <%= (sort==='reporter'||sort==='reportante') ? (dir==='asc'?'▲':'▼') : '' %>
           </a>
@@ -105,7 +110,7 @@
     </thead>
     <tbody>
       <% if (!tickets || tickets.length === 0) { %>
-        <tr><td colspan="8" class="empty">Sin tickets</td></tr>
+        <tr><td colspan="9" class="empty">Sin tickets</td></tr>
       <% } else { tickets.forEach(t => { %>
         <tr data-status="<%= t.status %>">
           <td><a href="<%= listType === 'requested' ? ('/tickets/requested/' + t.id) : ('/tickets/' + t.id) %>"><%= t.id %></a></td>
@@ -117,6 +122,7 @@
           </td>
           <td><%= t.assigned_to_name || '—' %></td>
           <td><%= new Date(t.opened_at).toLocaleString() %></td>
+          <td><%= t.solved_at ? new Date(t.solved_at).toLocaleString() : '—' %></td>
           <td><%= t.created_by_name %></td>
         </tr>
       <% }) } %>

@@ -243,6 +243,25 @@ async function notifyByConfig(pool, ticket, eventType = 'created', { skipUserIds
   }
   const actionStr = eventType === 'closed' ? 'cerrado' : 'creado';
   const subject = `[${departmentName}] ${ticket.category} · Ticket #${ticket.id} — ${ticket.subject}`;
+  // Construye el cuerpo del correo.  Además del nombre completo del
+  // reportante, se incluye su nombre de usuario si está disponible.  Esto
+  // permite identificar rápidamente quién levantó el ticket.  También se
+  // muestra el asunto seleccionado.
+  const reporterLine = ticket.creator_username
+    ? `${ticket.creator_name || ''} (${ticket.creator_username})`
+    : `${ticket.creator_name || ''}`;
+  // Construir enlace absoluto al detalle del ticket.  Para permitir
+  // personalizar la URL según el entorno (local, nube, dominio propio),
+  // se utilizan las variables de entorno APP_BASE_URL y TICKET_URL_PATH.
+  // APP_BASE_URL debe incluir el esquema (http/https) y dominio, por ejemplo:
+  //   http://localhost:3000    o    https://soporte360.up.railway.app
+  // TICKET_URL_PATH define el prefijo del path antes del ID.  Por defecto
+  // utiliza '/tickets/requested' para redirigir al modo "solicitado".  Puedes
+  // ajustar estas variables en tu archivo .env o en tu configuración de
+  // entorno para cambiar el dominio o el path fácilmente.
+  const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+  const ticketPath = process.env.TICKET_URL_PATH || '/tickets/requested';
+  const ticketUrl = `${baseUrl}${ticketPath}/${ticket.id}`;
   const html = `
     <p>Se ha ${actionStr} un ticket de tu departamento.</p>
     <ul>
@@ -250,9 +269,9 @@ async function notifyByConfig(pool, ticket, eventType = 'created', { skipUserIds
       <li><strong>Departamento:</strong> ${departmentName}</li>
       <li><strong>Categoría:</strong> ${ticket.category}</li>
       <li><strong>Asunto:</strong> ${ticket.subject}</li>
-      <li><strong>Reportado por:</strong> ${ticket.creator_name || ''}</li>
+      <li><strong>Reportado por:</strong> ${reporterLine}</li>
     </ul>
-    <p><a href="${process.env.APP_BASE_URL || ''}/tickets/${ticket.id}">Ver ticket</a></p>
+    <p><a href="${ticketUrl}">Ver ticket</a></p>
   `;
   await Promise.all(recList.map(u => sendMail(u.email, subject, html)));
 }
@@ -281,6 +300,14 @@ async function notifyCategory(pool, ticket, { skipUserIds = [] } = {}) {
   const recipients = subs.filter(u => !skipUserIds.includes(u.id));
   if (!recipients.length) return;
   const subject = `[${ticket.department_name}] ${ticket.category} · Ticket #${ticket.id} — ${ticket.subject}`;
+  const reporterLine = ticket.creator_username
+    ? `${ticket.creator_name || ''} (${ticket.creator_username})`
+    : `${ticket.creator_name || ''}`;
+  // Construir enlace absoluto al detalle del ticket para categorías.  Se usan
+  // APP_BASE_URL y TICKET_URL_PATH de igual manera que en notifyByConfig.
+  const baseUrl2 = process.env.APP_BASE_URL || 'http://localhost:3000';
+  const ticketPath2 = process.env.TICKET_URL_PATH || '/tickets/requested';
+  const ticketUrl2 = `${baseUrl2}${ticketPath2}/${ticket.id}`;
   const html = `
     <p>Se ha creado un nuevo ticket de tu categoría suscrita.</p>
     <ul>
@@ -288,9 +315,9 @@ async function notifyCategory(pool, ticket, { skipUserIds = [] } = {}) {
       <li><strong>Departamento:</strong> ${ticket.department_name}</li>
       <li><strong>Categoría:</strong> ${ticket.category}</li>
       <li><strong>Asunto:</strong> ${ticket.subject}</li>
-      <li><strong>Reportado por:</strong> ${ticket.creator_name}</li>
+      <li><strong>Reportado por:</strong> ${reporterLine}</li>
     </ul>
-    <p><a href="${process.env.APP_BASE_URL || ''}/tickets/${ticket.id}">Ver ticket</a></p>
+    <p><a href="${ticketUrl2}">Ver ticket</a></p>
   `;
   await Promise.all(recipients.map(u => sendMail(u.email, subject, html)));
 }

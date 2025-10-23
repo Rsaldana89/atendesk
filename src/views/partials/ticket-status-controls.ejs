@@ -22,7 +22,9 @@ const s   = t.status;
       <select name="agent_id" id="agent_id" class="form-select" required>
         <option value="">Asignar a…</option>
         <% assignables.forEach(function(u) { %>
-          <option value="<%= u.id %>" <%= (t.assigned_to === u.id) ? 'selected' : '' %>><%= u.full_name %><%= u.role === 'manager' ? ' (manager)' : '' %></option>
+          <option value="<%= u.id %>" <%= (t.assigned_to === u.id) ? 'selected' : '' %>>
+            <%= u.full_name %><% if (u.role === 'manager') { %> (manager)<% } else if (u.role === 'agent' || u.role === 'agente') { %> (agente)<% } %>
+          </option>
         <% }); %>
       </select>
       <button type="submit" class="btn btn-secondary">Asignar</button>

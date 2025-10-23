@@ -117,6 +117,20 @@
     <canvas id="chart-solved-by" height="150"></canvas>
   </div>
 
+  <!-- Nuevas estadísticas: tickets por reportante y top de categorías y asuntos -->
+  <div class="card chart-card">
+    <h2 style="margin:0 0 .5rem 0;">Tickets por reportante</h2>
+    <canvas id="chart-reporters" height="150"></canvas>
+  </div>
+  <div class="card chart-card">
+    <h2 style="margin:0 0 .5rem 0;">Top categorías</h2>
+    <canvas id="chart-top-categories" height="150"></canvas>
+  </div>
+  <div class="card chart-card">
+    <h2 style="margin:0 0 .5rem 0;">Top asuntos</h2>
+    <canvas id="chart-top-subjects" height="150"></canvas>
+  </div>
+
   <!-- Chart.js (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
@@ -145,6 +159,9 @@
       let chartStatus = null;
       let chartAvgDept = null;
       let chartSolvedBy = null;
+    let chartReporters = null;
+    let chartTopCategories = null;
+    let chartTopSubjects = null;
 
       function setKpi(id, value) {
         document.getElementById(id).textContent = (value ?? 0).toLocaleString('es-MX');
@@ -233,6 +250,39 @@
               plugins:{ legend:{ display:false } },
               scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }
             }
+          });
+
+          // Tickets por reportante (username)
+          const repLabels  = (data.reporters || []).map(r => r.username || 'Sin usuario');
+          const repValues  = (data.reporters || []).map(r => r.tickets || 0);
+          if (chartReporters) chartReporters.destroy();
+          const ctxRep = document.getElementById('chart-reporters').getContext('2d');
+          chartReporters = new Chart(ctxRep, {
+            type:'bar',
+            data:{ labels: repLabels, datasets:[{ label:'Tickets', data: repValues }] },
+            options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+          });
+
+          // Top categorías
+          const catLabels  = (data.topCategories || []).map(r => r.category || 'Sin categoría');
+          const catValues  = (data.topCategories || []).map(r => r.tickets || 0);
+          if (chartTopCategories) chartTopCategories.destroy();
+          const ctxCat = document.getElementById('chart-top-categories').getContext('2d');
+          chartTopCategories = new Chart(ctxCat, {
+            type:'bar',
+            data:{ labels: catLabels, datasets:[{ label:'Tickets', data: catValues }] },
+            options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+          });
+
+          // Top asuntos
+          const subjLabels = (data.topSubjects || []).map(r => r.subject || 'Sin asunto');
+          const subjValues = (data.topSubjects || []).map(r => r.tickets || 0);
+          if (chartTopSubjects) chartTopSubjects.destroy();
+          const ctxSubj = document.getElementById('chart-top-subjects').getContext('2d');
+          chartTopSubjects = new Chart(ctxSubj, {
+            type:'bar',
+            data:{ labels: subjLabels, datasets:[{ label:'Tickets', data: subjValues }] },
+            options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
           });
         } catch (err) {
           console.error('Error al cargar estadísticas:', err);
