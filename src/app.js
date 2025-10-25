@@ -640,10 +640,12 @@ app.get('/api/announcements', requireAuth, async (req, res) => {
     }
     const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
+    // Formateamos las fechas al estilo día/mes/año para una presentación consistente en la interfaz.
+    // created_at incluye hora y minutos; until_date solo la fecha. Utilizamos barras (dd/mm/aaaa) en lugar de guiones.
     const [rows] = await pool.query(
       `SELECT a.id, a.dept, a.title, a.body, a.active,
-              DATE_FORMAT(a.created_at,'%Y-%m-%d %H:%i') AS created_at,
-              DATE_FORMAT(a.until_date,'%Y-%m-%d')       AS until_date
+              DATE_FORMAT(a.created_at,'%d/%m/%Y %H:%i') AS created_at,
+              DATE_FORMAT(a.until_date,'%d/%m/%Y')       AS until_date
          FROM announcements a
          ${where}
          ORDER BY a.created_at DESC
@@ -814,7 +816,8 @@ app.get('/api/announcements/:id/comments', requireAuth, async (req, res) => {
               c.announcement_id,
               c.body,
               c.reply_to_comment_id,
-              DATE_FORMAT(c.created_at,'%Y-%m-%d %H:%i') AS created_at,
+              -- Formateamos created_at al formato dd/mm/aaaa hh:mm
+              DATE_FORMAT(c.created_at,'%d/%m/%Y %H:%i') AS created_at,
               u.full_name       AS author,
               u.role            AS author_role
          FROM announcement_comments c
@@ -906,6 +909,21 @@ const host = process.env.HOST || '0.0.0.0';
 pool.query('SELECT 1')
   .then(() => console.log('✅ Conexión a MySQL OK'))
   .catch(err => console.error('❌ Error conectando a MySQL:', err.message));
+
+// ---------------------------------------------------------------------------
+// Auto-cierre de tickets solucionados
+//
+// Importamos y ejecutamos la tarea programada que revisa periódicamente los
+// tickets con estatus "solucionado" que llevan más de 48 horas en ese estado.
+// La frecuencia de ejecución se controla mediante la variable de entorno
+// AUTO_CLOSE_FREQUENCY_HOURS.  El módulo se encarga de ejecutar una
+// revisión inicial y luego programar la siguiente.
+try {
+  require('./utils/autoCloseTickets');
+  console.log('🔁 Tarea de auto-cierre de tickets cargada');
+} catch (err) {
+  console.error('⚠️  No se pudo cargar la tarea de auto-cierre de tickets:', err.message);
+}
 
 app.listen(port, host, () => {
   const os = require('os');
