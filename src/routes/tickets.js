@@ -406,7 +406,40 @@ router.get('/new', async (req, res) => {
 });
 
 // POST /tickets/new — crea ticket + (0..2) adjuntos
-router.post('/new', upload.array('evidencias', MAX_FILES), async (req, res) => {
+router.post('/new', async (req, res) => {
+  // Procesar subida de archivos (hasta MAX_FILES) y capturar errores de Multer
+  try {
+    await new Promise((resolve, reject) => {
+      upload.array('evidencias', MAX_FILES)(req, res, function(err) {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  } catch (err) {
+    // Si excede el número de archivos, tipo o peso, Multer arroja un error
+    if (err instanceof multer.MulterError) {
+      console.error('Error de carga en ticket nuevo:', err);
+      // Renderiza el formulario nuevamente con el mensaje de error
+      try {
+        const [depts] = await pool.query('SELECT id, name FROM departments WHERE is_active=1 ORDER BY name');
+        return res.status(400).render('ticket_new', {
+          title: 'Nuevo Ticket', departments: depts,
+          selectedDepartment: req.body?.department_id || '',
+          subject: req.body?.subject || '',
+          description: req.body?.description || '',
+          creatorName: req.body?.creator_name || '',
+          contactPhone: req.body?.contact_phone || '',
+          category: req.body?.category || '',
+          error: err.message || 'Error al subir evidencia'
+        });
+      } catch (deptsErr) {
+        console.error('Error cargando departamentos tras fallo de carga', deptsErr);
+        return res.status(400).send(err.message || 'Error al subir evidencia');
+      }
+    }
+    console.error('Error inesperado durante carga de evidencias', err);
+    return res.status(500).send('Error al subir evidencias');
+  }
   try {
     const userId = req.session.user?.id;
     if (!userId) return res.status(401).send('No autenticado');

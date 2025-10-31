@@ -65,7 +65,7 @@
       <% } %>
     </div>
     <% if (canManageEv && currentEvCount < maxEv) { %>
-      <form id="ev-upload-form" action="/tickets/<%= t.id %>/attachments" method="post" enctype="multipart/form-data" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <form id="ev-upload-form" action="/tickets/<%= t.id %>/attachments" method="post" enctype="multipart/form-data" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center" data-max-left="<%= maxEv - currentEvCount %>">
         <input type="file" id="ev-upload-input" name="evidencias" accept="image/jpeg,image/png" multiple
                <%= (currentEvCount >= maxEv) ? 'disabled' : '' %> style="flex:1" />
         <button type="submit" class="btn" <%= (currentEvCount >= maxEv) ? 'disabled' : '' %>>Subir evidencia</button>
@@ -135,5 +135,39 @@
         }
       });
     });
+
+    // Manejo de envío del formulario de evidencias
+    const uploadForm = document.getElementById('ev-upload-form');
+    if (uploadForm) {
+      uploadForm.addEventListener('submit', async function(ev) {
+        ev.preventDefault();
+        const maxLeft = parseInt(uploadForm.dataset.maxLeft || '0', 10);
+        const input = document.getElementById('ev-upload-input');
+        if (!input || !input.files || input.files.length === 0) {
+          alert('Selecciona al menos una imagen.');
+          return;
+        }
+        // Limitar la cantidad de archivos a subir según el espacio disponible
+        const fileList = Array.from(input.files).slice(0, maxLeft);
+        const fd = new FormData();
+        fileList.forEach(file => {
+          fd.append('evidencias', file);
+        });
+        try {
+          const res = await fetch(uploadForm.action, { method:'POST', body: fd });
+          let data;
+          try { data = await res.json(); } catch(_) { data = null; }
+          if (res.ok && data && data.ok) {
+            location.reload();
+          } else {
+            const msg = (data && (data.error || data.msg)) || 'Error al subir evidencia';
+            alert(msg);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error de red al subir evidencia');
+        }
+      });
+    }
   })();
 </script>

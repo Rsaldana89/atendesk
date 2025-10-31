@@ -41,7 +41,7 @@ const upload = multer({
 });
 
 /* Agregar 1 o 2 evidencias a un ticket existente */
-router.post('/tickets/:id/attachments', upload.array('evidencias', MAX_FILES), async (req, res) => {
+router.post('/tickets/:id/attachments', async (req, res) => {
   const ticketId = Number(req.params.id);
   if (!Number.isInteger(ticketId) || ticketId <= 0) {
     return res.status(400).json({ error: 'ID de ticket inválido' });
@@ -80,8 +80,24 @@ router.post('/tickets/:id/attachments', upload.array('evidencias', MAX_FILES), a
     console.error('Error consultando estado del ticket', stErr);
     return res.status(500).json({ error: 'Error interno' });
   }
+  // Primero sube los archivos con multer, capturando errores
+  try {
+    await new Promise((resolve, reject) => {
+      upload.array('evidencias', MAX_FILES)(req, res, function(err) {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  } catch (err) {
+    // Errores de multer: cantidad o peso excedido, tipo no permitido
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: err.message });
+    }
+    // Otros errores inesperados
+    console.error('Error Multer', err);
+    return res.status(500).json({ error: 'Error subiendo evidencias' });
+  }
   const userId = user.id || 0;
-
   try {
     const [rowsCnt] = await pool.query(
       'SELECT COUNT(*) AS cnt FROM ticket_attachments WHERE ticket_id=?',
@@ -91,26 +107,20 @@ router.post('/tickets/:id/attachments', upload.array('evidencias', MAX_FILES), a
     if (cnt >= 2) {
       return res.status(400).json({ error: 'Ya hay 2 adjuntos en este ticket' });
     }
-
     let nextSeq = cnt + 1;
-
     for (const f of (req.files || [])) {
       if (nextSeq > 2) break;
-
       // Normaliza si hay normalizador, si no, pasa tal cual
       const img = await normalizeToJpgWithThumb(f.buffer, f.mimetype);
       // Si hay normalizador, el destino será JPG; si no, conserva el mimetype original
       const targetMime = img.mime || (HAS_NORMALIZER ? 'image/jpeg' : (f.mimetype || 'application/octet-stream'));
-
       const checksum = crypto.createHash('sha256').update(img.data).digest('hex');
-
       // Evita duplicado exacto
       const [dup] = await pool.query(
         'SELECT id FROM ticket_attachments WHERE ticket_id=? AND checksum_sha256=?',
         [ticketId, checksum]
       );
       if (dup.length) continue;
-
       await pool.query(
         `INSERT INTO ticket_attachments
            (ticket_id, seq, original_name, mime_type, data, thumb,
@@ -119,18 +129,12 @@ router.post('/tickets/:id/attachments', upload.array('evidencias', MAX_FILES), a
         [ticketId, nextSeq, f.originalname || null, targetMime,
          img.data, img.thumb, img.size, img.width, img.height, checksum, userId]
       );
-
       nextSeq++;
     }
-
-    res.json({ ok: true });
+    return res.json({ ok: true });
   } catch (e) {
     console.error('POST /tickets/:id/attachments', e);
-    // Si el error vino de Multer (peso, etc.)
-    if (e instanceof multer.MulterError) {
-      return res.status(400).json({ error: e.message });
-    }
-    res.status(500).json({ error: 'Error subiendo evidencias' });
+    return res.status(500).json({ error: 'Error subiendo evidencias' });
   }
 });
 
