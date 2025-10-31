@@ -261,7 +261,16 @@ async function notifyByConfig(pool, ticket, eventType = 'created', { skipUserIds
   // entorno para cambiar el dominio o el path fácilmente.
   const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
   const ticketPath = process.env.TICKET_URL_PATH || '/tickets/requested';
-  const ticketUrl = `${baseUrl}${ticketPath}/${ticket.id}`;
+  // Construir la URL que se incluirá en el correo.  A partir de la versión
+  // 0.88, los correos dejan de enlazar al ticket específico y en su lugar
+  // redirigen a una lista general de tickets.  Para permitir la
+  // personalización en distintos entornos, se ofrece la variable de
+  // entorno EMAIL_LINK_URL; si está definida se usará su valor
+  // (por ejemplo, "https://soporte360.up.railway.app/tickets").  En caso
+  // contrario se construye un enlace por defecto combinando el dominio
+  // y el path configurados sin añadir el ID del ticket.
+  const defaultTicketLink = `${baseUrl}${ticketPath}`;
+  const ticketUrl = process.env.EMAIL_LINK_URL || defaultTicketLink;
   const html = `
     <p>Se ha ${actionStr} un ticket de tu departamento.</p>
     <ul>
@@ -307,7 +316,13 @@ async function notifyCategory(pool, ticket, { skipUserIds = [] } = {}) {
   // APP_BASE_URL y TICKET_URL_PATH de igual manera que en notifyByConfig.
   const baseUrl2 = process.env.APP_BASE_URL || 'http://localhost:3000';
   const ticketPath2 = process.env.TICKET_URL_PATH || '/tickets/requested';
-  const ticketUrl2 = `${baseUrl2}${ticketPath2}/${ticket.id}`;
+  // Utilizar la misma lógica de enlace general que en notifyByConfig.  Se
+  // evita incluir el ID del ticket para que el enlace siempre apunte a
+  // la lista de tickets.  Si EMAIL_LINK_URL está definido en el entorno
+  // se usará dicho valor; de lo contrario, se construye usando
+  // APP_BASE_URL y TICKET_URL_PATH.
+  const defaultTicketLink2 = `${baseUrl2}${ticketPath2}`;
+  const ticketUrl2 = process.env.EMAIL_LINK_URL || defaultTicketLink2;
   const html = `
     <p>Se ha creado un nuevo ticket de tu categoría suscrita.</p>
     <ul>
