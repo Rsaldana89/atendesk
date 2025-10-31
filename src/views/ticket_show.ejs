@@ -35,18 +35,45 @@
   <h3>Descripción</h3>
   <p style="white-space:pre-wrap"><%= t.description %></p>
 
-  <% if (attachments && attachments.length) { %>
+  <% /* Evidencias (adjuntos) */ %>
+  <% 
+    const roleLower = (userRole || '').toLowerCase();
+    const allowedRolesForEv = ['admin','manager','agent','agente'];
+    const isFinalState = ['cerrado','cancelado'].includes((t.status || '').toLowerCase());
+    const canManageEv = (viewMode === 'attend') && allowedRolesForEv.includes(roleLower) && !isFinalState;
+    const maxEv = 2;
+    const currentEvCount = attachments ? attachments.length : 0;
+  %>
+  <% if ((attachments && attachments.length) || canManageEv) { %>
     <hr style="margin:16px 0;border:0;border-top:1px solid #e5e7eb"/>
     <h3>Evidencias</h3>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
-      <% attachments.forEach(a => { %>
-        <a href="/attachments/<%= a.id %>/raw" target="_blank" style="display:block">
-          <img src="/attachments/<%= a.id %>/thumb"
-               alt="Evidencia <%= a.seq %>"
-               style="width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px"/>
-        </a>
-      <% }) %>
+    <div class="ev-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+      <% if (attachments && attachments.length) { %>
+        <% attachments.forEach(a => { %>
+          <div style="position:relative; display:block">
+            <a href="/attachments/<%= a.id %>/raw" target="_blank">
+              <img src="/attachments/<%= a.id %>/thumb"
+                   alt="Evidencia <%= a.seq %>"
+                   style="width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px"/>
+            </a>
+            <% if (canManageEv) { %>
+              <button type="button" class="btn btn-secondary delete-att-btn" data-att-id="<%= a.id %>"
+                      style="position:absolute;top:4px;right:4px;padding:2px 6px;font-size:12px;line-height:1">×</button>
+            <% } %>
+          </div>
+        <% }) %>
+      <% } %>
     </div>
+    <% if (canManageEv && currentEvCount < maxEv) { %>
+      <form id="ev-upload-form" action="/tickets/<%= t.id %>/attachments" method="post" enctype="multipart/form-data" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+        <input type="file" id="ev-upload-input" name="evidencias" accept="image/jpeg,image/png" multiple
+               <%= (currentEvCount >= maxEv) ? 'disabled' : '' %> style="flex:1" />
+        <button type="submit" class="btn" <%= (currentEvCount >= maxEv) ? 'disabled' : '' %>>Subir evidencia</button>
+      </form>
+      <div class="hint" style="font-size:0.875rem;color:#6b7280;margin-top:4px">
+        Puedes subir hasta <%= maxEv - currentEvCount %> foto<%= (maxEv - currentEvCount) === 1 ? '' : 's' %> más.
+      </div>
+    <% } %>
   <% } %>
 
   <!-- Historial de transiciones -->
@@ -81,3 +108,32 @@
         data-ticket-id="<%= t.id %>"
         data-root=""
         data-department="<%= t.department %>"></script>
+
+<!-- Script para gestionar eliminación de evidencias (solo para roles autorizados) -->
+<script>
+  (function(){
+    const delBtns = document.querySelectorAll('.delete-att-btn');
+    delBtns.forEach(btn => {
+      btn.addEventListener('click', async function(){
+        const attId = this.dataset.attId;
+        if (!attId) return;
+        if (!confirm('¿Eliminar esta evidencia?')) return;
+        try {
+          const res = await fetch(`/attachments/${attId}`, { method:'DELETE', headers:{ 'Accept': 'application/json' } });
+          let data;
+          try { data = await res.json(); } catch(_) { data = null; }
+          if (res.ok && data && data.ok) {
+            // Recargar la página para reflejar cambios
+            location.reload();
+          } else {
+            const msg = (data && data.error) || 'Error al eliminar evidencia';
+            alert(msg);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error de red al eliminar');
+        }
+      });
+    });
+  })();
+</script>

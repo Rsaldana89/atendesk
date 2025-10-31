@@ -3,6 +3,7 @@ const express = require('express');
 const multer  = require('multer');
 const crypto  = require('crypto');
 const { pool } = require('../db');
+const { canAccessTicket } = require('../lib/ticketAccess');
 
 const router = express.Router();
 
@@ -45,7 +46,41 @@ router.post('/tickets/:id/attachments', upload.array('evidencias', MAX_FILES), a
   if (!Number.isInteger(ticketId) || ticketId <= 0) {
     return res.status(400).json({ error: 'ID de ticket inválido' });
   }
-  const userId = req.session?.user?.id || 0;
+  // Usuario autenticado y con permiso
+  const user = req.session?.user || null;
+  if (!user) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+  const role = String(user.role || '').toLowerCase();
+  // Solo admin, manager o agentes pueden subir evidencias
+  if (!['admin', 'manager', 'agent', 'agente'].includes(role)) {
+    return res.status(403).json({ error: 'No autorizado' });
+  }
+  // Verificar que el usuario pueda acceder al ticket
+  try {
+    const allowed = await canAccessTicket(pool, user, ticketId);
+    if (!allowed) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+  } catch (accErr) {
+    console.error('Error verificando acceso a ticket', accErr);
+    return res.status(500).json({ error: 'Error interno' });
+  }
+  // Verificar estado del ticket para permitir adjuntos
+  try {
+    const [[tk]] = await pool.query('SELECT status FROM tickets WHERE id=?', [ticketId]);
+    if (!tk) {
+      return res.status(404).json({ error: 'Ticket no encontrado' });
+    }
+    const st = String(tk.status || '').toLowerCase();
+    if (['cerrado', 'cancelado'].includes(st)) {
+      return res.status(400).json({ error: 'El ticket está cerrado o cancelado' });
+    }
+  } catch (stErr) {
+    console.error('Error consultando estado del ticket', stErr);
+    return res.status(500).json({ error: 'Error interno' });
+  }
+  const userId = user.id || 0;
 
   try {
     const [rowsCnt] = await pool.query(
@@ -136,13 +171,40 @@ router.get('/attachments/:attId/raw', async (req, res) => {
 /* Eliminar evidencia y compactar secuencia */
 router.delete('/attachments/:attId', async (req, res) => {
   try {
+    const attId = req.params.attId;
+    // Verificar existencia del adjunto
     const [[row]] = await pool.query(
       'SELECT ticket_id, seq FROM ticket_attachments WHERE id=?',
-      [req.params.attId]
+      [attId]
     );
     if (!row) return res.status(404).json({ error: 'No encontrado' });
+    // Usuario autenticado
+    const user = req.session?.user || null;
+    if (!user) {
+      return res.status(401).json({ error: 'No autenticado' });
+    }
+    const role = String(user.role || '').toLowerCase();
+    if (!['admin', 'manager', 'agent', 'agente'].includes(role)) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    // Verificar que tenga acceso al ticket
+    const allowed = await canAccessTicket(pool, user, row.ticket_id);
+    if (!allowed) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    // Verificar que el ticket no esté cerrado o cancelado
+    const [[ticket]] = await pool.query(
+      'SELECT status FROM tickets WHERE id=?',
+      [row.ticket_id]
+    );
+    if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado' });
+    const st = String(ticket.status || '').toLowerCase();
+    if (['cerrado', 'cancelado'].includes(st)) {
+      return res.status(400).json({ error: 'El ticket está cerrado o cancelado' });
+    }
 
-    await pool.query('DELETE FROM ticket_attachments WHERE id=?', [req.params.attId]);
+    await pool.query('DELETE FROM ticket_attachments WHERE id=?', [attId]);
+    // Ajustar la secuencia: si el adjunto eliminado era el #1 y existe #2, pasa #2 a #1
     await pool.query(
       `UPDATE ticket_attachments SET seq=1
          WHERE ticket_id=? AND seq=2
