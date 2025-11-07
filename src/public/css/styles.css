@@ -142,6 +142,35 @@ h1 { margin-top: 0; }
 }
 
 /*
+ * Estilo personalizado para el botón de asignación.  Se aplica un tono de
+ * verde claro para darle mayor protagonismo y distinguirlo de otros
+ * controles, ayudando a los managers a utilizarlo correctamente en lugar
+ * del botón de aceptar.
+ */
+.btn-assign {
+  background: #86efac; /* verde claro */
+  color: #065f46;     /* texto verde oscuro para contraste */
+  border: 1px solid #4ade80;
+}
+.btn-assign:hover {
+  background: #4ade80; /* tono ligeramente más intenso en hover */
+  border-color: #4ade80;
+  color: #064e3b;
+}
+
+/*
+ * Ajuste del formulario de subida de evidencias para que el botón "Subir
+ * evidencia" no quede separado excesivamente del campo para elegir
+ * archivos.  Se evita que el input ocupe todo el ancho disponible
+ * eliminando el comportamiento flex:1 que se aplicaba inline en la vista.
+ */
+#ev-upload-form input[type="file"] {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+}
+
+/*
  * Controles de cambio de estado y asignación en la vista de tickets
  * por atender y solicitados.  Ajustamos la separación y la estética de
  * los botones y selects para que se integren mejor con la interfaz.

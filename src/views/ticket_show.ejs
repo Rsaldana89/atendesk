@@ -67,7 +67,7 @@
     <% if (canManageEv && currentEvCount < maxEv) { %>
       <form id="ev-upload-form" action="/tickets/<%= t.id %>/attachments" method="post" enctype="multipart/form-data" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center" data-max-left="<%= maxEv - currentEvCount %>">
         <input type="file" id="ev-upload-input" name="evidencias" accept="image/jpeg,image/png" multiple
-               <%= (currentEvCount >= maxEv) ? 'disabled' : '' %> style="flex:1" />
+               <%= (currentEvCount >= maxEv) ? 'disabled' : '' %> style="flex:0 0 auto" />
         <button type="submit" class="btn" <%= (currentEvCount >= maxEv) ? 'disabled' : '' %>>Subir evidencia</button>
       </form>
       <div class="hint" style="font-size:0.875rem;color:#6b7280;margin-top:4px">

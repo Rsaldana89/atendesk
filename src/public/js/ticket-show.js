@@ -72,9 +72,42 @@
     }
   }
 
-  box.addEventListener('click', (e) => {
+  box.addEventListener('click', async (e) => {
     const btn = e.target.closest('button[data-to]');
     if (!btn) return;
-    send(btn.dataset.to);
+    const to = btn.dataset.to;
+    // Si se está aceptando un ticket y existe un agente seleccionado en el
+    // formulario de asignación, primero asigna el ticket antes de cambiar
+    // el estado.  Esto evita que los managers dejen el ticket sin asignar
+    // accidentalmente cuando hacen clic en "Aceptar".
+    if (to === 'en_progreso') {
+      try {
+        const assignSelect = document.querySelector('.assign-form select[name="agent_id"]');
+        const selectedId = assignSelect && assignSelect.value;
+        if (selectedId) {
+          // Realiza la asignación mediante una petición al backend.
+          const assignRes = await fetch(`${root}/tickets/${ticketId}/assign`, {
+            method: 'POST',
+            // Indicamos explícitamente que esperamos JSON en la respuesta para
+            // evitar redirecciones HTML desde el backend.
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ agent_id: selectedId })
+          });
+          let assignData;
+          try { assignData = await assignRes.json(); } catch (_) { assignData = null; }
+          if (!assignRes.ok || !assignData || !assignData.ok) {
+            const msg = (assignData && assignData.msg) || 'Error al asignar ticket';
+            alert(msg);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de red al asignar');
+        return;
+      }
+    }
+    // Finalmente envía la transición de estado
+    send(to);
   });
 })();

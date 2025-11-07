@@ -379,6 +379,199 @@ reportsRouter.get('/api/stats', async (req, res) => {
   }
 });
 
+// -----------------------------------------------------------------------------
+// Reporte de tiempo de atención por ticket
+// Devuelve, para cada ticket resuelto dentro de los filtros proporcionados, el
+// tiempo transcurrido entre su apertura y su solución.  El tiempo se
+// expresa en segundos (diff_seconds) para que el cliente lo convierta a
+// horas y minutos según necesite.
+reportsRouter.get('/api/attention', async (req, res) => {
+  try {
+    const user = req.session.user || {};
+    // Parámetros de consulta
+    const start    = req.query.start ? String(req.query.start).trim() : '';
+    const end      = req.query.end   ? String(req.query.end).trim()   : '';
+    const statuses = (req.query.statuses || '').split(',').map(s => s.trim()).filter(Boolean);
+    const deptIds  = (req.query.depts || '').split(',').map(s => s.trim()).filter(Boolean);
+
+    // Determinar departamentos accesibles por el usuario
+    let accessibleDeptIds = [];
+    if (user.role === 'admin') {
+      const [rows] = await pool.query(`SELECT id FROM departments`);
+      accessibleDeptIds = rows.map(r => String(r.id));
+    } else {
+      const [rows] = await pool.query(
+        `SELECT department_id AS id
+           FROM user_department_access
+          WHERE user_id = ?`,
+        [user.id || 0]
+      );
+      accessibleDeptIds = rows.map(r => String(r.id));
+    }
+    // Filtra depts por intersección con accesibles
+    const filteredDeptIds = deptIds.length
+      ? deptIds.filter(id => accessibleDeptIds.includes(id))
+      : accessibleDeptIds;
+
+    // Construir cláusula WHERE
+    const whereParts = [];
+    const params = [];
+    // Rango de fechas sobre opened_at
+    if (start) {
+      whereParts.push('t.opened_at >= ?');
+      params.push(`${start} 00:00:00`);
+    }
+    if (end) {
+      whereParts.push('t.opened_at <= ?');
+      params.push(`${end} 23:59:59`);
+    }
+    // Filtrar por estados si se proporcionan
+    if (statuses.length) {
+      whereParts.push(`t.status IN (${statuses.map(() => '?').join(',')})`);
+      params.push(...statuses);
+    }
+    // Filtrar por departamentos accesibles
+    if (filteredDeptIds.length) {
+      whereParts.push(`t.department_id IN (${filteredDeptIds.map(() => '?').join(',')})`);
+      params.push(...filteredDeptIds);
+    }
+    // Considerar sólo tickets resueltos (solved_at no nulo)
+    whereParts.push('t.solved_at IS NOT NULL');
+    const whereClause = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+
+    const [rows] = await pool.query(
+      `SELECT t.id        AS ticket_id,
+              t.subject   AS subject,
+              d.name      AS department,
+              t.opened_at AS opened_at,
+              t.solved_at AS solved_at,
+              TIMESTAMPDIFF(SECOND, t.opened_at, t.solved_at) AS diff_seconds,
+              uc.full_name AS creator_name,
+              us.full_name AS solver_name
+         FROM tickets t
+         JOIN departments d ON d.id = t.department_id
+         LEFT JOIN users uc ON uc.id = t.created_by
+         LEFT JOIN users us ON us.id = t.solved_by_user_id
+         ${whereClause}
+         ORDER BY t.opened_at`,
+      params
+    );
+    return res.json({ items: rows || [] });
+  } catch (e) {
+    console.error('GET /reports/api/attention error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// Exporta el reporte de tiempo de atención a un archivo XLS (CSV)
+// GET /reports/api/attention/export?start=YYYY-MM-DD&end=YYYY-MM-DD&statuses=a,b,c&depts=1,2
+reportsRouter.get('/api/attention/export', async (req, res) => {
+  try {
+    const user = req.session.user || {};
+    // Parámetros de consulta
+    const start    = req.query.start ? String(req.query.start).trim() : '';
+    const end      = req.query.end   ? String(req.query.end).trim()   : '';
+    const statuses = (req.query.statuses || '').split(',').map(s => s.trim()).filter(Boolean);
+    const deptIds  = (req.query.depts || '').split(',').map(s => s.trim()).filter(Boolean);
+    // Determinar departamentos accesibles por el usuario
+    let accessibleDeptIds = [];
+    if (user.role === 'admin') {
+      const [rows] = await pool.query(`SELECT id FROM departments`);
+      accessibleDeptIds = rows.map(r => String(r.id));
+    } else {
+      const [rows] = await pool.query(
+        `SELECT department_id AS id
+           FROM user_department_access
+          WHERE user_id = ?`,
+        [user.id || 0]
+      );
+      accessibleDeptIds = rows.map(r => String(r.id));
+    }
+    const filteredDeptIds = deptIds.length
+      ? deptIds.filter(id => accessibleDeptIds.includes(id))
+      : accessibleDeptIds;
+    // Construir cláusula WHERE
+    const whereParts = [];
+    const params = [];
+    if (start) {
+      whereParts.push('t.opened_at >= ?');
+      params.push(`${start} 00:00:00`);
+    }
+    if (end) {
+      whereParts.push('t.opened_at <= ?');
+      params.push(`${end} 23:59:59`);
+    }
+    if (statuses.length) {
+      whereParts.push(`t.status IN (${statuses.map(() => '?').join(',')})`);
+      params.push(...statuses);
+    }
+    if (filteredDeptIds.length) {
+      whereParts.push(`t.department_id IN (${filteredDeptIds.map(() => '?').join(',')})`);
+      params.push(...filteredDeptIds);
+    }
+    whereParts.push('t.solved_at IS NOT NULL');
+    const whereClause = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+    // Obtener datos
+    const [rows] = await pool.query(
+      `SELECT t.id        AS ticket_id,
+              d.name      AS department,
+              t.subject   AS subject,
+              uc.full_name AS creator_name,
+              us.full_name AS solver_name,
+              t.opened_at AS opened_at,
+              t.solved_at AS solved_at,
+              TIMESTAMPDIFF(SECOND, t.opened_at, t.solved_at) AS diff_seconds
+         FROM tickets t
+         JOIN departments d ON d.id = t.department_id
+         LEFT JOIN users uc ON uc.id = t.created_by
+         LEFT JOIN users us ON us.id = t.solved_by_user_id
+         ${whereClause}
+         ORDER BY t.opened_at`,
+      params
+    );
+    // Construir CSV usando comas como separador y escapando comillas
+    const esc = v => {
+      if (v === null || v === undefined) v = '';
+      v = String(v).replace(/"/g, '""');
+      return '"' + v + '"';
+    };
+    const lines = [];
+    // Cabecera en español
+    lines.push([
+      'Ticket ID','Departamento','Asunto','Reportante','Solucionado por','Abierto','Solucionado','Tiempo'
+    ].map(esc).join(','));
+    rows.forEach(r => {
+      const openedDate = r.opened_at instanceof Date ? r.opened_at : new Date(r.opened_at);
+      const solvedDate = r.solved_at instanceof Date ? r.solved_at : new Date(r.solved_at);
+      const openedStr = openedDate.toLocaleString('es-MX');
+      const solvedStr = solvedDate.toLocaleString('es-MX');
+      const diff  = Number(r.diff_seconds) || 0;
+      const hours = Math.floor(diff / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      const timeStr = `${hours}h ${String(minutes).padStart(2,'0')}m`;
+      lines.push([
+        r.ticket_id,
+        r.department || '',
+        r.subject || '',
+        r.creator_name || '',
+        r.solver_name || '',
+        openedStr,
+        solvedStr,
+        timeStr
+      ].map(esc).join(','));
+    });
+    const csv = '\ufeff' + lines.join('\r\n');
+    const fname = `tiempo_atencion_${Date.now()}.xls`;
+    res.setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+    return res.send(csv);
+  } catch (e) {
+    console.error('GET /reports/api/attention/export error:', e);
+    res.status(500).json({ error: 'Error al exportar tiempo de atención' });
+  }
+});
+
 // -----------------------------------------------------------
 // Exporta las estadísticas actuales a un archivo CSV
 // GET /reports/api/export?start=YYYY-MM-DD&end=YYYY-MM-DD&statuses=a,b,c&depts=1,2
@@ -531,27 +724,27 @@ reportsRouter.get('/api/export', async (req, res) => {
 
     // Totales
     Object.entries(totals).forEach(([st, val]) => {
-      add(['Totals', st, val, '']);
+      add(['Totales', st, val, '']);
     });
     lines.push('');
     // Promedio global
     const avgGlobalRound = Math.round(avgGlobal * 100) / 100;
-    add(['AverageGlobal','', avgGlobalRound, '']);
+    add(['PromedioGlobal','', avgGlobalRound, '']);
     lines.push('');
     // Promedio por departamento
     avgDeptRows.forEach(r => {
       const v = r.avg_hours ? Math.round(Number(r.avg_hours) * 100) / 100 : 0;
-      add(['AvgDept', r.department || '', v, r.solved]);
+      add(['PromedioDepto', r.department || '', v, r.solved]);
     });
     lines.push('');
     // Resueltos por usuario
     solvedRows.forEach(r => {
-      add(['SolvedByUser', r.user_name || 'Sin asignar', r.tickets, '']);
+      add(['ResueltosPorUsuario', r.user_name || 'Sin asignar', r.tickets, '']);
     });
     lines.push('');
     // Top deptos
     topDeptRows.forEach(r => {
-      add(['TopDept', r.department || '', r.tickets, '']);
+      add(['TopDepartamentos', r.department || '', r.tickets, '']);
     });
 
     // Reportantes (tickets creados por usuario) – se calculan usando el mismo
@@ -569,7 +762,7 @@ reportsRouter.get('/api/export', async (req, res) => {
         params
       );
       reporterRows.forEach(r => {
-        add(['Reporters', r.username || 'Sin usuario', r.tickets, '']);
+        add(['Reportantes', r.username || 'Sin usuario', r.tickets, '']);
       });
 
       // Top categorías
@@ -582,8 +775,8 @@ reportsRouter.get('/api/export', async (req, res) => {
            LIMIT 10`,
         params
       );
-      catRows.forEach(r => {
-        add(['TopCat', r.category || 'Sin categoría', r.tickets, '']);
+        catRows.forEach(r => {
+        add(['TopCategorías', r.category || 'Sin categoría', r.tickets, '']);
       });
 
       // Top asuntos
@@ -597,7 +790,7 @@ reportsRouter.get('/api/export', async (req, res) => {
         params
       );
       subjRows.forEach(r => {
-        add(['TopSubject', r.subject || 'Sin asunto', r.tickets, '']);
+        add(['TopAsuntos', r.subject || 'Sin asunto', r.tickets, '']);
       });
     } catch (errStats) {
       console.error('Error agregando secciones de reportantes/categorías/asuntos al CSV de estadísticas:', errStats);

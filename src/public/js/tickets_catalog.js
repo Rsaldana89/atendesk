@@ -1,70 +1,5 @@
 // Catálogo de asuntos por DEPARTAMENTO → (asunto, categoría, urgencia)
 window.TICKETS_CATALOGO = {
-  // —— Sistemas ——
-  "Sistemas": [
-    // Retail
-    { subject: "No puedo iniciar Retail", category: "Retail (Software)", urgency: "ALTA" },
-    { subject: "Retail muy lento", category: "Retail (Software)", urgency: "MEDIA" },
-    { subject: "No pasan mis tickets", category: "Retail (Software)", urgency: "MEDIA" },
-    { subject: "No se actualizan precios en sistema", category: "Retail (Software)", urgency: "MEDIA" },
-    { subject: "No se reflejan traspasos", category: "Retail (Software)", urgency: "MEDIA" },
-    { subject: "Otros (Retail)", category: "Retail (Software)", urgency: "BAJA" },
-
-    // Pinpad
-    { subject: "No manda la señal de cobro", category: "Pinpad", urgency: "ALTA" },
-    { subject: "Pide actualizar contraseña", category: "Pinpad", urgency: "ALTA" },
-    { subject: "No funciona el contactless", category: "Pinpad", urgency: "BAJA" },
-    { subject: "Otros (Pinpad)", category: "Pinpad", urgency: "BAJA" },
-
-    // Miniprinter
-    { subject: "No salen tickets de la miniprinter", category: "Miniprinter", urgency: "MEDIA" },
-    { subject: "No salen vouchers de la miniprinter", category: "Miniprinter", urgency: "MEDIA" },
-    { subject: "Otros (Miniprinter)", category: "Miniprinter", urgency: "BAJA" },
-
-    // Hardware
-    { subject: "No prende mi computadora", category: "Hardware", urgency: "ALTA" },
-    { subject: "No prende mi impresora", category: "Hardware", urgency: "ALTA" },
-    { subject: "No funciona mi teclado", category: "Hardware", urgency: "ALTA" },
-    { subject: "No funciona mi mouse", category: "Hardware", urgency: "ALTA" },
-    { subject: "No funciona mi escáner de PC", category: "Hardware", urgency: "MEDIA" },
-    { subject: "No reconoce dispositivos USB", category: "Hardware", urgency: "MEDIA" },
-    { subject: "El cableado está dañado o muy desordenado", category: "Hardware", urgency: "MEDIA" },
-    { subject: "Otros (Hardware)", category: "Hardware", urgency: "BAJA" },
-
-    // Báscula
-    { subject: "No pasan los tickets al sistema", category: "Báscula", urgency: "MEDIA" },
-    { subject: "No imprime ticket la báscula", category: "Báscula", urgency: "ALTA" },
-    { subject: "Peso erróneo en la báscula", category: "Báscula", urgency: "MEDIA" },
-    { subject: "No se actualizan precios de la báscula", category: "Báscula", urgency: "MEDIA" },
-    { subject: "Calibración de báscula", category: "Báscula", urgency: "MEDIA" },
-    { subject: "Otros (Báscula)", category: "Báscula", urgency: "BAJA" },
-
-    // CCTV
-    { subject: "No puedo acceder a mis cámaras", category: "CCTV y Audio", urgency: "MEDIA" },
-    { subject: "No suenan mis bocinas", category: "CCTV y Audio", urgency: "BAJA" },
-    { subject: "No puedo acceder a grabaciones", category: "CCTV y Audio", urgency: "MEDIA" },
-    { subject: "Falla una o varias cámaras", category: "CCTV y Audio", urgency: "MEDIA" },
-    { subject: "Falla monitor de cámaras", category: "CCTV y Audio", urgency: "BAJA" },
-    { subject: "Otros (CCTV y Audio)", category: "CCTV y Audio", urgency: "BAJA" },
-
-    // Internet
-    { subject: "No hay Internet", category: "INTERNET", urgency: "ALTA" },
-    { subject: "No hay línea telefónica", category: "INTERNET", urgency: "MEDIA" },
-    { subject: "Hay Internet pero el mundito está gris", category: "INTERNET", urgency: "MEDIA" },
-    { subject: "El Internet está muy lento", category: "INTERNET", urgency: "MEDIA" },
-    { subject: "Otros (Internet)", category: "INTERNET", urgency: "BAJA" },
-
-    // Facturación
-    { subject: "Error de timbrado: Tasa de impuestos", category: "FACTURACION", urgency: "MEDIA" },
-    { subject: "Error de timbrado: Nombre", category: "FACTURACION", urgency: "MEDIA" },
-    { subject: "Error de timbrado: Uso de CFDI", category: "FACTURACION", urgency: "MEDIA" },
-    { subject: "Error de timbrado: Dirección fiscal Receptor", category: "FACTURACION", urgency: "MEDIA" },
-    { subject: "Error de timbrado: Dirección fiscal Emisor", category: "FACTURACION", urgency: "MEDIA" },
-    { subject: "Otros (Facturación)", category: "FACTURACION", urgency: "BAJA" },
-
-    { subject: "Otros", category: "OTROS SISTEMAS", urgency: "BAJA" }
-  ],
-
   // —— Mantenimiento ——
   "Mantenimiento": [
     { subject: "Falla en básculas normales", category: "BASCULAS", urgency: "MEDIA" },
@@ -145,60 +80,69 @@ window.TICKETS_CATALOGO = {
     { subject: "Otros", category: "OTROS MANTENIMIENTO", urgency: "BAJA" }
   ],
 
-  // —— Compras ——
-  "Compras": [
-    { subject: "No surte proveedor directo Coca", category: "No surte Proveedor directo", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Pepsi", category: "No surte Proveedor directo", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Bimbo", category: "No surte Proveedor directo", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Capistrano", category: "No surte Proveedor directo", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Huevo", category: "No surte Proveedor directo", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Otros", category: "No surte Proveedor directo", urgency: "MEDIA" },
-    { subject: "Otros (Proveedores directos)", category: "No surte Proveedor directo", urgency: "BAJA" },
+  // —— Finanzas ——
+  "Finanzas": [
+    { subject: "El cliente se queja de un cargo no reconocido o doble", category: "COBROS TARJETA", urgency: "MEDIA" },
+    { subject: "No llega la devolución del cliente", category: "COBROS TARJETA", urgency: "MEDIA" },
+    { subject: "La tarjeta del cliente no pasa", category: "COBROS TARJETA", urgency: "MEDIA" },
+    { subject: "Otros (Cobros tarjeta)", category: "COBROS TARJETA", urgency: "BAJA" },
 
-    { subject: "Devolución de cliente en sucursal", category: "Devoluciones", urgency: "MEDIA" },
-    { subject: "Otros (Devoluciones)", category: "Devoluciones", urgency: "BAJA" },
-
-    { subject: "Productos que piden los clientes", category: "Productos", urgency: "BAJA" },
-    { subject: "Código de barras desactualizado", category: "Productos", urgency: "BAJA" },
-    { subject: "Descripción incorrecta de producto", category: "Productos", urgency: "MEDIA" },
-    { subject: "Otros (Productos)", category: "Productos", urgency: "BAJA" },
-
-    { subject: "Dudas de promociones", category: "Precios", urgency: "BAJA" },
-    { subject: "Dudas de cambios de precios", category: "Precios", urgency: "BAJA" },
-    { subject: "Otros (Precios)", category: "Precios", urgency: "BAJA" },
-
-    { subject: "Proveedor aparece como inactivo", category: "Proveedores", urgency: "MEDIA" },
-    { subject: "Otros (Proveedores)", category: "Proveedores", urgency: "BAJA" },
-
-    { subject: "Falla de calidad La Quinta", category: "Falla de Calidad", urgency: "ALTA" },
-    { subject: "Falla de calidad Capistrano", category: "Falla de Calidad", urgency: "ALTA" },
-    { subject: "Falla de calidad Coronel", category: "Falla de Calidad", urgency: "ALTA" },
-    { subject: "Falla de calidad Otros", category: "Falla de Calidad", urgency: "MEDIA" },
-    { subject: "Otros (Falla de calidad)", category: "Falla de Calidad", urgency: "BAJA" },
-
-    { subject: "Otros", category: "Otros Compras", urgency: "BAJA" }
-  ],
-
-  // —— CEDIS ——
-  "CEDIS": [
-    { subject: "Faltante de mercancía", category: "MERCANCIA", urgency: "MEDIA" },
-    { subject: "Mercancía en mal estado desde recepción", category: "MERCANCIA", urgency: "ALTA" },
-    { subject: "Me cobraron mercancía que no venía", category: "MERCANCIA", urgency: "ALTA" },
-    { subject: "Otros (Mercancía)", category: "MERCANCIA", urgency: "BAJA" },
-
-    { subject: "No le puedo dar entrada al folio de mi pedido", category: "PEDIDOS", urgency: "ALTA" },
-    { subject: "Otros (Pedidos)", category: "PEDIDOS", urgency: "BAJA" },
-
-    { subject: "Otros", category: "CEDIS OTROS", urgency: "BAJA" }
+    { subject: "Error en apertura y cierre de caja", category: "CORTES", urgency: "MEDIA" },
+    { subject: "Error en captura de depósitos bancarios Retail", category: "DEPOSITOS", urgency: "MEDIA" },
+    { subject: "Visita de autoridades a tienda", category: "OTROS", urgency: "ALTA" },
+    { subject: "Otros (Finanzas)", category: "OTROS", urgency: "MEDIA" }
   ],
 
   // —— Panadería ——
   "Panaderia": [
-    { subject: "Falla de calidad Panadería", category: "Pan", urgency: "ALTA" },
-    { subject: "Exceso de Producto", category: "Pan", urgency: "MEDIA" },
-    { subject: "Faltante de Producto", category: "Pan", urgency: "MEDIA" },
-    { subject: "Otros (Pan)", category: "Pan", urgency: "BAJA" },
-    { subject: "Otros", category: "Otros Pan", urgency: "BAJA" }
+    { subject: "Falla de calidad Panadería", category: "PAN", urgency: "ALTA" },
+    { subject: "Exceso de producto", category: "PAN", urgency: "MEDIA" },
+    { subject: "Faltante de producto", category: "PAN", urgency: "MEDIA" },
+    { subject: "Cargos dobles en sistema de producto", category: "PAN", urgency: "MEDIA" },
+    { subject: "Devoluciones o merma de producto", category: "PAN", urgency: "MEDIA" },
+    { subject: "Otros (Pan)", category: "PAN", urgency: "BAJA" },
+    { subject: "Otros", category: "OTROS PAN", urgency: "BAJA" }
+  ],
+
+  // —— Inventarios ——
+  "Inventarios": [
+    { subject: "Mandé mi inventario erróneo o sin ajustar", category: "INVENTARIO", urgency: "ALTA" },
+    { subject: "Revisión y cotejo folios de pedido CEDIS-Sucursales", category: "INVENTARIO", urgency: "MEDIA" },
+    { subject: "Error en la captura de mercancía proveedores (un producto por otro)", category: "INVENTARIO", urgency: "MEDIA" },
+    { subject: "Otros (Inventario)", category: "INVENTARIO", urgency: "BAJA" },
+
+    { subject: "No puedo ingresar factura o entrada de proveedor", category: "COMPRAS", urgency: "ALTA" },
+    { subject: "El total de la factura de proveedor no cuadra con sistema", category: "COMPRAS", urgency: "ALTA" },
+    { subject: "Otros (Compras)", category: "COMPRAS", urgency: "BAJA" }
+  ],
+
+  // —— Compras ——
+  "Compras": [
+    { subject: "Falla de calidad La Quinta", category: "FALLA DE CALIDAD", urgency: "ALTA" },
+    { subject: "Falla de calidad Capistrano", category: "FALLA DE CALIDAD", urgency: "ALTA" },
+    { subject: "Falla de calidad Coronel", category: "FALLA DE CALIDAD", urgency: "ALTA" },
+    { subject: "Falla de calidad Otros", category: "FALLA DE CALIDAD", urgency: "MEDIA" },
+    { subject: "Otros (Falla de calidad)", category: "FALLA DE CALIDAD", urgency: "BAJA" },
+
+    { subject: "Devolución de cliente en sucursal", category: "DEVOLUCIONES", urgency: "MEDIA" },
+    { subject: "Otros (Devoluciones)", category: "DEVOLUCIONES", urgency: "BAJA" },
+
+    { subject: "Productos que piden los clientes", category: "PRODUCTOS", urgency: "BAJA" },
+    { subject: "Código de barras desactualizado", category: "PRODUCTOS", urgency: "BAJA" },
+    { subject: "Descripción incorrecta de producto", category: "PRODUCTOS", urgency: "MEDIA" },
+    { subject: "Otros (Productos)", category: "PRODUCTOS", urgency: "BAJA" },
+
+    { subject: "Dudas de promociones", category: "PRECIOS", urgency: "BAJA" },
+    { subject: "Dudas de cambios de precios", category: "PRECIOS", urgency: "BAJA" },
+    { subject: "Otros (Precios)", category: "PRECIOS", urgency: "BAJA" },
+
+    { subject: "Proveedor aparece como inactivo", category: "PROVEEDORES", urgency: "MEDIA" },
+    { subject: "Otros (Proveedores)", category: "PROVEEDORES", urgency: "BAJA" },
+
+    { subject: "No surte proveedor directo (varios)", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "Otros (Proveedores directos)", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "BAJA" },
+
+    { subject: "Otros", category: "OTROS COMPRAS", urgency: "BAJA" }
   ],
 
   // —— Capital Humano ——
@@ -213,29 +157,103 @@ window.TICKETS_CATALOGO = {
     { subject: "Seguimiento a algún trámite (Infonavit, Fonacot, Afore)", category: "TRAMITES", urgency: "MEDIA" },
     { subject: "Otros (Trámites)", category: "TRAMITES", urgency: "BAJA" },
 
+    { subject: "Bloqueo de acceso a TalentoCoronel", category: "PLATAFORMAS", urgency: "BAJA" },
+    { subject: "Bloqueo de acceso a Fondo de Ahorro BBVA", category: "PLATAFORMAS", urgency: "BAJA" },
+    { subject: "Otros (Plataformas)", category: "PLATAFORMAS", urgency: "BAJA" },
+
     { subject: "Talento Coronel", category: "OTROS CH", urgency: "MEDIA" },
     { subject: "Otros", category: "OTROS CH", urgency: "MEDIA" }
   ],
 
-  // —— Inventarios ——
-  "Inventarios": [
-    { subject: "Mandé mi inventario erróneo o sin ajustar", category: "INVENTARIO", urgency: "ALTA" },
-    { subject: "Otros (Inventario)", category: "INVENTARIO", urgency: "BAJA" },
+  // —— Sistemas ——
+  "Sistemas": [
+    // Retail
+    { subject: "No puedo iniciar Retail", category: "RETAIL (SOFTWARE)", urgency: "ALTA" },
+    { subject: "Retail muy lento", category: "RETAIL (SOFTWARE)", urgency: "MEDIA" },
+    { subject: "No pasan mis tickets", category: "RETAIL (SOFTWARE)", urgency: "MEDIA" },
+    { subject: "No se actualizan precios en sistema", category: "RETAIL (SOFTWARE)", urgency: "MEDIA" },
+    { subject: "No se reflejan traspasos", category: "RETAIL (SOFTWARE)", urgency: "MEDIA" },
+    { subject: "Otros (Retail)", category: "RETAIL (SOFTWARE)", urgency: "BAJA" },
 
-    { subject: "No puedo ingresar factura o entrada de proveedor", category: "COMPRAS", urgency: "ALTA" },
-    { subject: "El total de la factura de proveedor no cuadra con sistema", category: "COMPRAS", urgency: "ALTA" },
-    { subject: "Otros (Compras)", category: "COMPRAS", urgency: "BAJA" }
+    // Pinpad
+    { subject: "No manda la señal de cobro", category: "PINPAD", urgency: "ALTA" },
+    { subject: "Pide actualizar contraseña", category: "PINPAD", urgency: "ALTA" },
+    { subject: "No funciona el contactless", category: "PINPAD", urgency: "BAJA" },
+    { subject: "Otros (Pinpad)", category: "PINPAD", urgency: "BAJA" },
+
+    // Miniprinter
+    { subject: "No salen tickets de la miniprinter", category: "MINPRINTER", urgency: "MEDIA" },
+    { subject: "No salen vouchers de la miniprinter", category: "MINPRINTER", urgency: "MEDIA" },
+    { subject: "Otros (Miniprinter)", category: "MINPRINTER", urgency: "BAJA" },
+
+    // Hardware
+    { subject: "No prende mi computadora", category: "HARDWARE", urgency: "ALTA" },
+    { subject: "No prende mi impresora", category: "HARDWARE", urgency: "ALTA" },
+    { subject: "No funciona mi teclado", category: "HARDWARE", urgency: "ALTA" },
+    { subject: "No funciona mi mouse", category: "HARDWARE", urgency: "ALTA" },
+    { subject: "No funciona mi escáner de PC", category: "HARDWARE", urgency: "MEDIA" },
+    { subject: "No reconoce dispositivos USB", category: "HARDWARE", urgency: "MEDIA" },
+    { subject: "El cableado está dañado o muy desordenado", category: "HARDWARE", urgency: "MEDIA" },
+    { subject: "Otros (Hardware)", category: "HARDWARE", urgency: "BAJA" },
+
+    // Báscula
+    { subject: "No pasan los tickets al sistema", category: "BASCULA", urgency: "MEDIA" },
+    { subject: "No imprime ticket la báscula", category: "BASCULA", urgency: "ALTA" },
+    { subject: "Peso erróneo en la báscula", category: "BASCULA", urgency: "MEDIA" },
+    { subject: "No se actualizan precios de la báscula", category: "BASCULA", urgency: "MEDIA" },
+    { subject: "Calibración de báscula", category: "BASCULA", urgency: "MEDIA" },
+    { subject: "Otros (Báscula)", category: "BASCULA", urgency: "BAJA" },
+
+    // CCTV
+    { subject: "No puedo acceder a mis cámaras", category: "CCTV Y AUDIO", urgency: "MEDIA" },
+    { subject: "No suenan mis bocinas", category: "CCTV Y AUDIO", urgency: "BAJA" },
+    { subject: "No puedo acceder a grabaciones", category: "CCTV Y AUDIO", urgency: "MEDIA" },
+    { subject: "Falla una o varias cámaras", category: "CCTV Y AUDIO", urgency: "MEDIA" },
+    { subject: "Falla monitor de cámaras", category: "CCTV Y AUDIO", urgency: "BAJA" },
+    { subject: "Otros (CCTV y Audio)", category: "CCTV Y AUDIO", urgency: "BAJA" },
+
+    // Internet
+    { subject: "No hay Internet", category: "INTERNET", urgency: "ALTA" },
+    { subject: "No hay línea telefónica", category: "INTERNET", urgency: "MEDIA" },
+    { subject: "Hay Internet pero el mundito está gris", category: "INTERNET", urgency: "MEDIA" },
+    { subject: "El Internet está muy lento", category: "INTERNET", urgency: "MEDIA" },
+    { subject: "Otros (Internet)", category: "INTERNET", urgency: "BAJA" },
+
+    // Personal
+    { subject: "Alta de personal", category: "ALTAS", urgency: "ALTA" },
+    { subject: "Baja de personal", category: "BAJAS", urgency: "ALTA" },
+
+    { subject: "Otros", category: "OTROS SISTEMAS", urgency: "BAJA" }
   ],
 
-  // —— Finanzas ——
-  "Finanzas": [
-    { subject: "Cargo no reconocido o doble (tarjeta)", category: "COBROS TARJETA", urgency: "ALTA" },
-    { subject: "No ha llegado la devolución al cliente (tarjeta)", category: "COBROS TARJETA", urgency: "ALTA" },
-    { subject: "La tarjeta del cliente no pasa", category: "COBROS TARJETA", urgency: "MEDIA" },
-    { subject: "Otros (Cobros tarjeta)", category: "COBROS TARJETA", urgency: "BAJA" },
+  // —— CEDIS ——
+  "CEDIS": [
+    { subject: "Faltante de mercancía", category: "MERCANCIA", urgency: "MEDIA" },
+    { subject: "No me cobraron mercancía que viene en el pedido", category: "MERCANCIA", urgency: "ALTA" },
+    { subject: "Me cobraron mercancía que no venía", category: "MERCANCIA", urgency: "ALTA" },
+    { subject: "Viene una cantidad de mercancía cobrada superior a lo que me entregaron", category: "MERCANCIA", urgency: "ALTA" },
+    { subject: "Viene una cantidad de mercancía cobrada inferior a lo que me entregaron", category: "MERCANCIA", urgency: "ALTA" },
+    { subject: "En la entrega viene cambiado el producto cobrado por otro no solicitado", category: "MERCANCIA", urgency: "ALTA" },
+    { subject: "Mercancía en mal estado desde recepción", category: "MERCANCIA", urgency: "MEDIA" },
+    { subject: "Mercancía en mal estado al abrir la caja (no después de 24 horas de la recepción)", category: "MERCANCIA", urgency: "MEDIA" },
+    { subject: "Otros (Mercancía)", category: "MERCANCIA", urgency: "BAJA" },
 
-    { subject: "Ya ingresé datos fiscales y no puedo facturar", category: "FACTURACION", urgency: "ALTA" },
-    { subject: "Otros (Facturación)", category: "FACTURACION", urgency: "BAJA" }
+    { subject: "No le puedo dar entrada al folio de mi pedido", category: "INVENTARIOS", urgency: "ALTA" },
+    { subject: "Folio pendiente por entrega sin traspaso", category: "INVENTARIOS", urgency: "ALTA" },
+    { subject: "Mandé una devolución de producto y me regresaron el cargo en sistema", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "No puedo enviar mi pedido porque no tengo internet", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "No puedo enviar mi pedido porque no tengo luz", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "No me llegó el pan completo y me lo cobraron", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "El chofer no se quiso esperar a la revisión del pedido", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "El chofer no se llevó la devolución que le entregué", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "El chofer fue descortés", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "No me llegó toda la mercancía que solicité", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "No me llegó pedido de CEDIS (cámara o abarrote) y sí hice pedido", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "El chofer me está entregando muy tarde mi pedido", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "El chofer me quedó de reponer mercancía faltante y no me la trae", category: "INVENTARIOS", urgency: "MEDIA" },
+    { subject: "Otros (Inventarios)", category: "INVENTARIOS", urgency: "BAJA" },
+
+    { subject: "Otros", category: "OTROS CEDIS", urgency: "MEDIA" }
   ]
 };
 

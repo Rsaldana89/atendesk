@@ -131,6 +131,15 @@
     <canvas id="chart-top-subjects" height="150"></canvas>
   </div>
 
+  <!-- Tiempo de atención por ticket -->
+  <div class="card chart-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.5rem;">
+      <h2 style="margin:0;">Tiempo de atención por ticket (hh:mm)</h2>
+      <button id="btn-export-attention" class="btn btn-secondary" type="button">Exportar XLS</button>
+    </div>
+    <div id="attention-container" style="overflow-x:auto; max-height:400px;"></div>
+  </div>
+
   <!-- Chart.js (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
@@ -140,6 +149,9 @@
       const statusSelect = document.getElementById('filter-status');
       const deptsSelect  = document.getElementById('filter-depts');
       const btnApply     = document.getElementById('btn-apply');
+
+      // Contenedor para la tabla de tiempo de atención
+      const attentionContainer = document.getElementById('attention-container');
 
       // Estado inicial: últimos 30 días
       const today = new Date();
@@ -162,6 +174,43 @@
     let chartReporters = null;
     let chartTopCategories = null;
     let chartTopSubjects = null;
+
+      // Cargar tiempo de atención por ticket
+      async function loadAttention(params) {
+        try {
+          const res = await fetch('/reports/api/attention?' + params.toString());
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          const items = data.items || [];
+          if (!attentionContainer) return;
+          if (!items.length) {
+            attentionContainer.innerHTML = '<p style="color:var(--muted); margin:0;">No hay tickets resueltos en este rango.</p>';
+            return;
+          }
+          // Construye la tabla HTML
+          let html = '<table class="table"><thead><tr>' +
+                     '<th>ID</th><th>Departamento</th><th>Asunto</th><th>Reportante</th><th>Solucionado por</th><th>Abierto</th><th>Solucionado</th><th>Tiempo</th>' +
+                     '</tr></thead><tbody>';
+          items.forEach(item => {
+            const openedDate = new Date(item.opened_at);
+            const solvedDate = new Date(item.solved_at);
+            const opened = openedDate.toLocaleString('es-MX');
+            const solved = solvedDate.toLocaleString('es-MX');
+            const diff  = Number(item.diff_seconds) || 0;
+            const hours = Math.floor(diff / 3600);
+            const minutes = Math.floor((diff % 3600) / 60);
+            const timeStr = `${hours}h ${String(minutes).padStart(2,'0')}m`;
+            html += `<tr><td>${item.ticket_id}</td><td>${item.department || ''}</td>` +
+                    `<td>${item.subject || ''}</td><td>${item.creator_name || ''}</td><td>${item.solver_name || ''}</td>` +
+                    `<td>${opened}</td><td>${solved}</td><td>${timeStr}</td></tr>`;
+          });
+          html += '</tbody></table>';
+          attentionContainer.innerHTML = html;
+        } catch (err) {
+          console.error('Error al cargar tiempo de atención:', err);
+          if (attentionContainer) attentionContainer.innerHTML = '<p>Error al cargar.</p>';
+        }
+      }
 
       function setKpi(id, value) {
         document.getElementById(id).textContent = (value ?? 0).toLocaleString('es-MX');
@@ -284,6 +333,9 @@
             data:{ labels: subjLabels, datasets:[{ label:'Tickets', data: subjValues }] },
             options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
           });
+
+          // Tras cargar estadísticas generales, carga el reporte de tiempo de atención con los mismos filtros
+          await loadAttention(params);
         } catch (err) {
           console.error('Error al cargar estadísticas:', err);
         }
@@ -315,6 +367,22 @@
       if (btnPrintRep) {
         btnPrintRep.addEventListener('click', () => {
           window.print();
+        });
+      }
+
+      // Exportar tiempo de atención como CSV/XLS
+      const btnExportAttention = document.getElementById('btn-export-attention');
+      if (btnExportAttention) {
+        btnExportAttention.addEventListener('click', () => {
+          const params = new URLSearchParams();
+          if (startInput.value) params.append('start', startInput.value);
+          if (endInput.value)   params.append('end', endInput.value);
+          const statuses = Array.from(statusSelect.selectedOptions).map(o => o.value);
+          if (statuses.length) params.append('statuses', statuses.join(','));
+          const depts = Array.from(deptsSelect.selectedOptions).map(o => o.value);
+          if (depts.length) params.append('depts', depts.join(','));
+          const url = '/reports/api/attention/export?' + params.toString();
+          window.open(url, '_blank');
         });
       }
     });
