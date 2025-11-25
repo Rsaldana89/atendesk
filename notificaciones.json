@@ -3,6 +3,7 @@
   "managers": true,
   "agents": {
     "*": "all",
-    "agente_cedis": ["PEDIDOS", "MERCANCIA", "INVENTARIOS"]
+    "agente_ch3": ["PLATAFORMAS"],
+    "agente_ch4": ["NOMINA"]
   }
 }
