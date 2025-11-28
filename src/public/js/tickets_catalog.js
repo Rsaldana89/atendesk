@@ -116,34 +116,63 @@ window.TICKETS_CATALOGO = {
     { subject: "Otros (Compras)", category: "COMPRAS", urgency: "BAJA" }
   ],
 
-  // —— Compras ——
+    // —— Compras ——
   "Compras": [
+    // Falla de calidad
     { subject: "Falla de calidad La Quinta", category: "FALLA DE CALIDAD", urgency: "ALTA" },
     { subject: "Falla de calidad Capistrano", category: "FALLA DE CALIDAD", urgency: "ALTA" },
     { subject: "Falla de calidad Coronel", category: "FALLA DE CALIDAD", urgency: "ALTA" },
+    { subject: "Falla de calidad de Capistrano", category: "FALLA DE CALIDAD", urgency: "ALTA" },
     { subject: "Falla de calidad Otros", category: "FALLA DE CALIDAD", urgency: "MEDIA" },
     { subject: "Otros (Falla de calidad)", category: "FALLA DE CALIDAD", urgency: "BAJA" },
 
-    { subject: "Devolución de cliente en sucursal", category: "DEVOLUCIONES", urgency: "MEDIA" },
+    // No surte proveedor directo (por proveedor)
+    { subject: "No surte proveedor directo Alpura", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Sabritas", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Araceli", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Gamesa", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Leche Qro", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Kelloggs", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Ochoa", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Bachoco", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Frijoles Puercos", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Huevo Santiago", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Peñafiel", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Santo Sano", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Trapeador", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Coca", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Pepsi", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Bimbo", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Capistrano", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Huevo Rojo", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+
+    // Genéricos para proveedor directo
+    { subject: "No surte proveedor directo (varios)", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "Otros (Proveedores directos)", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "BAJA" },
+
+    // Devoluciones
+    { subject: "Devolucion de cliente en sucursal", category: "DEVOLUCIONES", urgency: "MEDIA" },
     { subject: "Otros (Devoluciones)", category: "DEVOLUCIONES", urgency: "BAJA" },
 
+    // Productos
     { subject: "Productos que piden los clientes", category: "PRODUCTOS", urgency: "BAJA" },
-    { subject: "Código de barras desactualizado", category: "PRODUCTOS", urgency: "BAJA" },
-    { subject: "Descripción incorrecta de producto", category: "PRODUCTOS", urgency: "MEDIA" },
+    { subject: "Codigo de barras desactualizado", category: "PRODUCTOS", urgency: "BAJA" },
+    { subject: "Descripcion incorrecta de producto", category: "PRODUCTOS", urgency: "MEDIA" },
     { subject: "Otros (Productos)", category: "PRODUCTOS", urgency: "BAJA" },
 
+    // Precios
     { subject: "Dudas de promociones", category: "PRECIOS", urgency: "BAJA" },
     { subject: "Dudas de cambios de precios", category: "PRECIOS", urgency: "BAJA" },
     { subject: "Otros (Precios)", category: "PRECIOS", urgency: "BAJA" },
 
+    // Proveedores
     { subject: "Proveedor aparece como inactivo", category: "PROVEEDORES", urgency: "MEDIA" },
     { subject: "Otros (Proveedores)", category: "PROVEEDORES", urgency: "BAJA" },
 
-    { subject: "No surte proveedor directo (varios)", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "Otros (Proveedores directos)", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "BAJA" },
-
+    // Otros
     { subject: "Otros", category: "OTROS COMPRAS", urgency: "BAJA" }
   ],
+
 
   // —— Capital Humano ——
   "Capital Humano": [
