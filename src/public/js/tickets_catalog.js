@@ -116,7 +116,7 @@ window.TICKETS_CATALOGO = {
     { subject: "Otros (Compras)", category: "COMPRAS", urgency: "BAJA" }
   ],
 
-    // —— Compras ——
+  // —— Compras ——
   "Compras": [
     // Falla de calidad
     { subject: "Falla de calidad La Quinta", category: "FALLA DE CALIDAD", urgency: "ALTA" },
@@ -283,6 +283,14 @@ window.TICKETS_CATALOGO = {
     { subject: "Otros (Inventarios)", category: "INVENTARIOS", urgency: "BAJA" },
 
     { subject: "Otros", category: "OTROS CEDIS", urgency: "MEDIA" }
+  ],
+
+  // —— MERCADOTECNIA ——
+  "Mercadotecnia": [
+    { subject: "No llegó publicidad", category: "PUBLICIDAD", urgency: "ALTA" },
+    { subject: "La promoción no está activa", category: "PROMOCIONES", urgency: "ALTA" },
+    { subject: "Daño en material publicitario", category: "PUBLICIDAD", urgency: "MEDIA" },
+    { subject: "Otros", category: "OTROS MERCADOTECNIA", urgency: "MEDIA" }
   ]
 };
 

@@ -16,7 +16,8 @@ async function getDepartmentsForUser() {
       'Panaderia',
       'Capital Humano',
       'Inventarios',
-      'Finanzas'
+      'Finanzas',
+      'Mercadotecnia'
     )
   `);
   return rows;
