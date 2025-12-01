@@ -188,9 +188,7 @@ window.TICKETS_CATALOGO = {
 
     { subject: "Bloqueo de acceso a TalentoCoronel", category: "PLATAFORMAS", urgency: "BAJA" },
     { subject: "Bloqueo de acceso a Fondo de Ahorro BBVA", category: "PLATAFORMAS", urgency: "BAJA" },
-    { subject: "Otros (Plataformas)", category: "PLATAFORMAS", urgency: "BAJA" },
 
-    { subject: "Talento Coronel", category: "OTROS CH", urgency: "MEDIA" },
     { subject: "Otros", category: "OTROS CH", urgency: "MEDIA" }
   ],
 
