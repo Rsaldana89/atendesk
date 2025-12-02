@@ -171,3 +171,13 @@
     }
   })();
 </script>
+
+<!-- Auto refresh: recarga la página de detalle cada 10 minutos para reflejar cambios en el estatus del ticket. -->
+<script>
+  // Programa recargas periódicas solo cuando la pestaña está visible para evitar recargas en segundo plano.
+  setInterval(function() {
+    if (!document.hidden) {
+      window.location.reload();
+    }
+  }, 10 * 60 * 1000);
+</script>

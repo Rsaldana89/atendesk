@@ -544,7 +544,10 @@ router.post('/new', async (req, res) => {
           creator_name: creator_name.trim(),
           // Incluye también el nombre de usuario del reportante para ser
           // mostrado en las notificaciones de correo
-          creator_username: req.session.user?.username || ''
+          creator_username: req.session.user?.username || '',
+          // Pasar el teléfono de contacto al sistema de notificaciones para
+          // incluirlo en el correo si está disponible
+          contact_phone: phone || null
         }, 'created', { skipUserIds: [userId] });
       } catch (notifyErr) {
         console.error('Error notificando ticket:', notifyErr);
@@ -821,7 +824,8 @@ router.post('/:id/transition', async (req, res) => {
         if (to === STATES.CERRADO) {
           const [[trow]] = await pool.query(
             `SELECT t.id, t.department_id, d.name AS department_name, t.category,
-                    t.subject, u.full_name AS creator_name, u.username AS creator_username
+                    t.subject, u.full_name AS creator_name, u.username AS creator_username,
+                    t.contact_phone
                FROM tickets t
                JOIN departments d ON d.id = t.department_id
                JOIN users u ON u.id = t.created_by
@@ -836,7 +840,9 @@ router.post('/:id/transition', async (req, res) => {
               category: trow.category,
               subject: trow.subject,
               creator_name: trow.creator_name,
-              creator_username: trow.creator_username
+              creator_username: trow.creator_username,
+              // Pasar el teléfono de contacto para que se incluya como enlace en el correo
+              contact_phone: trow.contact_phone || null
             }, 'closed', { skipUserIds: [user.id] });
           }
         }

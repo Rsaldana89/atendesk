@@ -1,8 +1,13 @@
 {
-  "admins": true,
+  "admins": {
+    "*": true,
+    "admin": false,
+    "admin2": false
+  },
   "managers": true,
   "agents": {
     "*": "all",
+    "agente_mtto1": false,
     "agente_ch3": ["PLATAFORMAS"],
     "agente_ch4": ["NOMINA"]
   }

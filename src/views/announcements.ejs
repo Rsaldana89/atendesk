@@ -98,7 +98,9 @@
 
   <div id="channels" data-accessible='<%- JSON.stringify(accessibleDeptNames || []) %>'>
     <% 
-      const ordered = ['ALL','Capital Humano','CEDIS','Compras','Finanzas','Inventarios','Mantenimiento','Panaderia','Sistemas'];
+      // Orden de departamentos/áreas a mostrar en la sección de anuncios.  Se ha
+      // añadido "Mercadotecnia" para cubrir el área de marketing.
+      const ordered = ['ALL','Capital Humano','CEDIS','Compras','Finanzas','Inventarios','Mantenimiento','Panaderia','Sistemas','Mercadotecnia'];
       const icons = {
         'ALL': '📢',
         'Capital Humano': '👥',
@@ -108,7 +110,9 @@
         'Inventarios': '📦',
         'Mantenimiento': '🛠️',
         'Panaderia': '🥐',
-        'Sistemas': '💻'
+        'Sistemas': '💻',
+        // Icono sugerido para Mercadotecnia: gráfico de crecimiento/marketing
+        'Mercadotecnia': '📈'
       };
       const channelNames = ordered.filter(d => d === 'ALL' || depts.includes(d));
       channelNames.forEach(function(deptName) { 

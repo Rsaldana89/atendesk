@@ -271,6 +271,15 @@ async function notifyByConfig(pool, ticket, eventType = 'created', { skipUserIds
   // y el path configurados sin añadir el ID del ticket.
   const defaultTicketLink = `${baseUrl}${ticketPath}`;
   const ticketUrl = process.env.EMAIL_LINK_URL || defaultTicketLink;
+  // Construye la línea de teléfono sólo si se proporcionó un teléfono de contacto.  Se
+  // convierte en un enlace "tel:" eliminando los caracteres no numéricos (excepto
+  // el signo '+') para permitir que las aplicaciones telefónicas lo interpreten
+  // correctamente.  Si no hay teléfono, se dejará vacío.
+  let phoneHtml = '';
+  if (ticket && ticket.contact_phone) {
+    const telLink = String(ticket.contact_phone).replace(/[^0-9+]/g, '');
+    phoneHtml = `<li><strong>Teléfono:</strong> <a href="tel:${telLink}">${ticket.contact_phone}</a></li>`;
+  }
   const html = `
     <p>Se ha ${actionStr} un ticket de tu departamento.</p>
     <ul>
@@ -279,6 +288,7 @@ async function notifyByConfig(pool, ticket, eventType = 'created', { skipUserIds
       <li><strong>Categoría:</strong> ${ticket.category}</li>
       <li><strong>Asunto:</strong> ${ticket.subject}</li>
       <li><strong>Reportado por:</strong> ${reporterLine}</li>
+      ${phoneHtml}
     </ul>
     <p><a href="${ticketUrl}">Ver ticket</a></p>
   `;
@@ -323,6 +333,12 @@ async function notifyCategory(pool, ticket, { skipUserIds = [] } = {}) {
   // APP_BASE_URL y TICKET_URL_PATH.
   const defaultTicketLink2 = `${baseUrl2}${ticketPath2}`;
   const ticketUrl2 = process.env.EMAIL_LINK_URL || defaultTicketLink2;
+  // Construye la línea de teléfono sólo si el ticket tiene un teléfono de contacto.
+  let phoneHtml2 = '';
+  if (ticket && ticket.contact_phone) {
+    const telLink2 = String(ticket.contact_phone).replace(/[^0-9+]/g, '');
+    phoneHtml2 = `<li><strong>Teléfono:</strong> <a href="tel:${telLink2}">${ticket.contact_phone}</a></li>`;
+  }
   const html = `
     <p>Se ha creado un nuevo ticket de tu categoría suscrita.</p>
     <ul>
@@ -331,6 +347,7 @@ async function notifyCategory(pool, ticket, { skipUserIds = [] } = {}) {
       <li><strong>Categoría:</strong> ${ticket.category}</li>
       <li><strong>Asunto:</strong> ${ticket.subject}</li>
       <li><strong>Reportado por:</strong> ${reporterLine}</li>
+      ${phoneHtml2}
     </ul>
     <p><a href="${ticketUrl2}">Ver ticket</a></p>
   `;

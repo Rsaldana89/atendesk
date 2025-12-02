@@ -325,3 +325,15 @@
     overflow-x: auto;
   }
 </style>
+
+<!-- Auto refresh: recarga la página cada 10 minutos para mantener la lista de tickets actualizada incluso si la vista permanece abierta. -->
+<script>
+  // Utilizar setInterval en lugar de setTimeout para que la recarga se programe repetidamente.
+  // El intervalo se define en milisegundos: 10 minutos = 600 000 ms.
+  setInterval(function() {
+    // Sólo recargar si la pestaña está visible para evitar interrupciones innecesarias
+    if (!document.hidden) {
+      window.location.reload();
+    }
+  }, 10 * 60 * 1000);
+</script>
