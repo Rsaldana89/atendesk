@@ -248,7 +248,7 @@
         li.className = 'announce-item';
         li.innerHTML = `
           <strong>${a.title}</strong>
-          <div class="announce-meta">${a.dept === 'ALL' ? 'Todos' : a.dept} · ${new Date(a.created_at).toLocaleString()}</div>
+          <div class="announce-meta">${a.dept === 'ALL' ? 'Todos' : a.dept} · ${a.created_at}</div>
           <div>${a.body}</div>
         `;
         ul.appendChild(li);
