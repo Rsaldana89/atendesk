@@ -19,6 +19,9 @@ const announcementsRoutes = require('./routes/announcements');
 // Administración
 const adminUsersRoutes  = require('./routes/admin/users');
 
+// Rutas de eventos SSE para notificaciones en tiempo real
+const eventsRoutes      = require('./routes/events');
+
 const app = express();
 
 // Proxy (Railway, etc.)
@@ -70,6 +73,11 @@ app.use((req, res, next) => {
 app.use('/', authRoutes);
 app.use('/dashboard', requireAuth, dashboardRoutes);
 app.use('/tickets',   requireAuth, ticketRoutes);
+
+// Endpoint SSE para notificaciones en tiempo real.  Se requiere
+// autenticación para suscribirse a los eventos.  Las reglas de
+// visibilidad se aplican en el propio módulo events.
+app.use('/events', requireAuth, eventsRoutes.router || eventsRoutes);
 
 // Sección de anuncios.  Todos los usuarios logueados pueden acceder a esta
 // página para consultar comunicados.  Solamente administradores y managers

@@ -270,7 +270,8 @@
     <div class="modal-content">
       <span class="close" aria-label="Cerrar">&times;</span>
       <h3 id="about-title">Soporte360 CHC</h3>
-      <p><strong>Versión:</strong> 0.89 Beta</p>
+      <!-- Actualiza la versión en el modal -->
+      <p><strong>Versión:</strong> 0.91 Beta</p>
       <p>Desarrollado por <strong>Rubén Saldaña Alvarado</strong></p>
       <p>para <strong>Cremería Hermanos Coronel</strong></p>
     </div>
@@ -317,6 +318,71 @@
     closeBtn.addEventListener("click", () => aboutModal.style.display = "none");
     window.addEventListener("click", (e) => { if (e.target === aboutModal) aboutModal.style.display = "none"; });
     window.addEventListener("keydown", (e) => { if (e.key === 'Escape') aboutModal.style.display = "none"; });
+  </script>
+
+  <!-- Script para suscribirse a eventos SSE y mostrar notificaciones en el navegador -->
+  <script>
+    (function() {
+      // Sólo suscribir si el navegador soporta EventSource y hay un usuario
+      const userRole = '<%= user ? user.role : '' %>';
+      const isLoggedIn = Boolean('<%= user ? '1' : '' %>');
+      if (!isLoggedIn) return;
+      const role = (userRole || '').toLowerCase();
+      // Sólo agentes, managers y administradores reciben notificaciones
+      if (!['admin','manager','agent'].includes(role)) return;
+      if (!('EventSource' in window)) return;
+      try {
+        const evtSource = new EventSource('/events');
+        evtSource.onmessage = function(ev) {
+          if (!ev.data) return;
+          let data;
+          try { data = JSON.parse(ev.data); } catch (e) { return; }
+          if (data && data.type === 'newTicket') {
+            showTicketNotification(data);
+          }
+        };
+      } catch (err) {
+        console.error('Error al suscribirse a eventos:', err);
+      }
+
+      /**
+       * Muestra una notificación del navegador cuando llega un nuevo ticket.
+       * Utiliza la API de Notificaciones si el usuario ha otorgado permiso.
+       * Si el permiso está en el estado "default" se solicita de manera
+       * silenciosa.
+       * @param {object} data Datos del ticket recibidos vía SSE
+       */
+      function showTicketNotification(data) {
+        if (!('Notification' in window)) return;
+        const title = `Nuevo ticket (#${data.id})`;
+        const body  = `${data.department || ''} · ${data.category || ''} — ${data.subject || ''}`;
+        const opts  = {
+          body,
+          tag: `ticket-${data.id}`,
+          icon: '/img/atendesk-logo.png',
+          data
+        };
+        function doNotify() {
+          const n = new Notification(title, opts);
+          n.onclick = function() {
+            try {
+              window.focus();
+            } catch (e) {}
+            // Redirige al listado de tickets por atender
+            window.location.href = '/tickets';
+            n.close();
+          };
+        }
+        // Solicita permiso si es necesario
+        if (Notification.permission === 'granted') {
+          doNotify();
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then((perm) => {
+            if (perm === 'granted') doNotify();
+          }).catch(() => {});
+        }
+      }
+    })();
   </script>
 </body>
 </html>

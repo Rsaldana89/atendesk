@@ -18,6 +18,9 @@ const {
 // Notificaciones basadas en reglas definidas en notificaciones.json
 const { notifyByConfig } = require('../lib/notifications');
 
+// SSE: función para notificar a clientes en tiempo real cuando se crea un ticket.
+const { notifyNewTicket } = require('./events');
+
 // Adjuntos: deps y config
 const multer  = require('multer');
 const crypto  = require('crypto');
@@ -533,9 +536,9 @@ router.post('/new', async (req, res) => {
 
       await conn.commit();
 
-      // Notificar a los usuarios según reglas de notificaciones.
+      // Notificar a los usuarios según reglas de notificaciones (correo).
       try {
-      await notifyByConfig(pool, {
+        await notifyByConfig(pool, {
           id: ticketId,
           department_id: depId,
           department_name: destDept?.name || '',
@@ -550,7 +553,20 @@ router.post('/new', async (req, res) => {
           contact_phone: phone || null
         }, 'created', { skipUserIds: [userId] });
       } catch (notifyErr) {
-        console.error('Error notificando ticket:', notifyErr);
+        console.error('Error notificando ticket por correo:', notifyErr);
+      }
+
+      // Notificar en tiempo real mediante SSE a agentes, managers y administradores
+      try {
+        notifyNewTicket({
+          id: ticketId,
+          department_id: depId,
+          department_name: destDept?.name || '',
+          category: finalCategory,
+          subject: subject.trim()
+        });
+      } catch (sseErr) {
+        console.error('Error notificando SSE:', sseErr);
       }
 
       console.log('Ticket creado', { ticketId, files: req.files?.length || 0 });
