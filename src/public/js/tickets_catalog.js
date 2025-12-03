@@ -128,6 +128,8 @@ window.TICKETS_CATALOGO = {
 
     // No surte proveedor directo (por proveedor)
     { subject: "No surte proveedor directo Alpura", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Imperiales", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Embotelladora AGA", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
     { subject: "No surte proveedor directo Sabritas", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
     { subject: "No surte proveedor directo Araceli", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
     { subject: "No surte proveedor directo Gamesa", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
