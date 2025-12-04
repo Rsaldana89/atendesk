@@ -179,6 +179,7 @@ window.TICKETS_CATALOGO = {
   // —— Capital Humano ——
   "Capital Humano": [
     { subject: "Cambio de correo para recibir mi nómina", category: "NOMINA", urgency: "MEDIA" },
+    { subject: "Cambio de tarjeta de nómina", category: "NOMINA", urgency: "ALTA" },
     { subject: "Aclaraciones con mi nómina", category: "NOMINA", urgency: "ALTA" },
     { subject: "Otros (Nómina)", category: "NOMINA", urgency: "BAJA" },
 
