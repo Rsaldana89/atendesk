@@ -4,7 +4,11 @@
     "admin": false,
     "admin2": false
   },
-  "managers": true,
+  "managers": {
+    "*": true,
+    "DirecciónCHC": false,
+    "rquintanilla": false
+  },
   "agents": {
     "*": "all",
     "agente_mtto1": false,
