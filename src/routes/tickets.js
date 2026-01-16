@@ -20,6 +20,9 @@ const { notifyByConfig } = require('../lib/notifications');
 
 // SSE: función para notificar a clientes en tiempo real cuando se crea un ticket.
 const { notifyNewTicket } = require('./events');
+// Import urgency helper to derive ticket urgency at runtime.  Urgency is not stored
+// in the database, so we compute it from the catalog using department and subject.
+const { getUrgencyOrDefault } = require('../lib/urgency');
 
 // Adjuntos: deps y config
 const multer  = require('multer');
@@ -214,6 +217,18 @@ router.get('/', async (req, res) => {
     `;
 
     const [rows] = await pool.query(sql, allParams);
+    // Calcula la urgencia para cada ticket obtenido.  La urgencia no se guarda
+    // en la base de datos; se deriva de la combinación de departamento y
+    // asunto utilizando el catálogo en src/public/js/tickets_catalog.js.
+    rows.forEach(r => {
+      try {
+        // Añade una nueva propiedad `urgency` al objeto del ticket
+        r.urgency = getUrgencyOrDefault(r.department, r.subject);
+      } catch (e) {
+        // Si ocurre algún error, aplica el valor por defecto
+        r.urgency = 'MEDIA';
+      }
+    });
 
     // Helpers para la vista (conservar/restaurar querystring)
     const qs = (obj = {}) => {
@@ -353,6 +368,15 @@ router.get('/requested', async (req, res) => {
     `;
 
     const [rows] = await pool.query(sql, allParams);
+    // Deriva la urgencia para cada ticket solicitado.  La urgencia se calcula
+    // dinámicamente a partir del departamento y el asunto.
+    rows.forEach(r => {
+      try {
+        r.urgency = getUrgencyOrDefault(r.department, r.subject);
+      } catch (e) {
+        r.urgency = 'MEDIA';
+      }
+    });
 
     // Helpers para la vista (conservar/restaurar querystring)
     const qs = (obj = {}) => {
@@ -700,6 +724,20 @@ router.get('/:id(\\d+)', async (req, res) => {
       { ticket: row, userId: viewerId }
     );
 
+    // Determina si el actor puede agregar comentarios al historial.  Los
+    // comentarios están permitidos cuando el ticket está en los estados
+    // abierto, en progreso, reabierto o solucionado.  Además, sólo el
+    // creador del ticket, el agente asignado, el administrador o el
+    // manager pueden comentar.
+    const allowedStatusesForComment = ['abierto','en_progreso','reabierto','solucionado'];
+    const stLower = String(row.status || '').toLowerCase();
+    const roleLowerCase = String(req.session.user?.role || '').toLowerCase();
+    const currentUserId = req.session.user?.id || null;
+    const isCreator = currentUserId && (row.created_by === currentUserId);
+    const isAssignedAgent = currentUserId && (row.assigned_to === currentUserId) && ['agent','agente'].includes(roleLowerCase);
+    const isAdminOrManager = ['admin','manager'].includes(roleLowerCase);
+    const canComment = allowedStatusesForComment.includes(stLower) && (isCreator || isAssignedAgent || isAdminOrManager);
+
     res.render('ticket_show', {
       title: `Ticket #${row.id}`,
       t: row,
@@ -712,7 +750,9 @@ router.get('/:id(\\d+)', async (req, res) => {
       canClose,
       canAccept, // ← para la vista (ocultar botón Aceptar)
       viewMode: 'attend',
-      roleMap
+      roleMap,
+      canComment,
+      creatorId: row.created_by
     });
   } catch (err) {
     console.error('GET /tickets/:id', err);
@@ -878,6 +918,82 @@ router.post('/:id/transition', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Agrega un comentario al historial de un ticket (sin cambiar de estado)
+// POST /tickets/:id/comment
+router.post('/:id(\\d+)/comment', async (req, res) => {
+  try {
+    const ticketId = ensureInt(req.params.id);
+    if (!ticketId) return res.status(400).send('ID inválido');
+
+    const user = req.session.user || {};
+    if (!user || !user.id) return res.status(401).send('No autenticado');
+
+    // Cargar ticket para determinar estado y permisos
+    const [[ticket]] = await pool.query(
+      'SELECT id, status, created_by, assigned_to FROM tickets WHERE id=?',
+      [ticketId]
+    );
+    if (!ticket) return res.status(404).send('Ticket no encontrado');
+
+    // Verificar acceso
+    const allowed = await canAccessTicket(pool, user, ticketId);
+    if (!allowed) return res.status(403).send('No autorizado');
+
+    // Determinar si puede comentar: estados permitidos y roles/autores
+    const allowedStatusesForComment = ['abierto','en_progreso','reabierto','solucionado'];
+    const stLower = String(ticket.status || '').toLowerCase();
+    const roleLowerCase = String(user.role || '').toLowerCase();
+    const currentUserId = user.id || null;
+    const isCreator = currentUserId && (ticket.created_by === currentUserId);
+    const isAssignedAgent = currentUserId && (ticket.assigned_to === currentUserId) && ['agent','agente'].includes(roleLowerCase);
+    const isAdminOrManager = ['admin','manager'].includes(roleLowerCase);
+    if (!allowedStatusesForComment.includes(stLower) || !(isCreator || isAssignedAgent || isAdminOrManager)) {
+      return res.status(403).send('No autorizado');
+    }
+
+    // Contenido del comentario
+    let comment = String(req.body?.comment || '').trim();
+    if (!comment) {
+      return res.status(400).send('Comentario vacío');
+    }
+    if (comment.length > 500) {
+      comment = comment.slice(0, 500);
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      // Actualiza updated_at para marcar actividad reciente
+      await conn.query('UPDATE tickets SET updated_at=NOW() WHERE id=?', [ticketId]);
+      // Registra transición (comentario) con from_status = to_status
+      const normalizedRole = user ? normRole(user.role) : ROLES.SYSTEM;
+      const actorRole = roleMap[normalizedRole] || normalizedRole;
+      const ip  = req.ip || null;
+      const ua  = (req.headers['user-agent'] || '').slice(0, 255);
+      await conn.query(
+        `INSERT INTO ticket_transitions
+           (ticket_id, actor_id, actor_role, from_status, to_status, note, ip_address, user_agent)
+         VALUES (?,?,?,?,?,?,?,?)`,
+        [ticketId, user.id || null, actorRole, ticket.status, ticket.status, comment, ip, ua]
+      );
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      console.error('Error insertando comentario', err);
+      return res.status(500).send('Error guardando comentario');
+    } finally {
+      conn.release();
+    }
+    // Redirige de vuelta a la página del ticket.  Si la vista original es
+    // /tickets/requested/:id, el frontend puede redirigir igualmente a la ruta
+    // de atención sin afectar permisos (canAccessTicket validará).
+    return res.redirect(`/tickets/${ticketId}`);
+  } catch (err) {
+    console.error('POST /tickets/:id/comment', err);
+    return res.status(500).send('Error guardando comentario');
+  }
+});
 // -----------------------------------------------------------------------------
 // Exporta los detalles de un ticket y su historial a un archivo CSV
 // GET /tickets/:id/export
@@ -1112,6 +1228,15 @@ router.get('/export', async (req, res) => {
       allParams
     );
 
+    // Calcula la urgencia para cada ticket (no almacenada en la BD)
+    rows.forEach(r => {
+      try {
+        r.urgency = getUrgencyOrDefault(r.department, r.subject);
+      } catch (e) {
+        r.urgency = 'MEDIA';
+      }
+    });
+
     // Construir CSV
     const esc = v => {
       if (v === null || v === undefined) v = '';
@@ -1142,8 +1267,8 @@ router.get('/export', async (req, res) => {
     add(['Meta','Fecha hasta', end   || '—', '']);
     out.push('');
 
-    // Encabezado de datos: incluye columna de fecha de solución
-    add(['ID','Asunto','Categoría','Departamento','Estatus','Atendiendo','Abierto','Solucionado','Reportante']);
+    // Encabezado de datos: incluye columna de fecha de solución y urgencia
+    add(['ID','Asunto','Categoría','Departamento','Estatus','Atendiendo','Abierto','Solucionado','Reportante','Urgencia']);
     // Filas de datos
     rows.forEach(r => {
       add([
@@ -1155,7 +1280,8 @@ router.get('/export', async (req, res) => {
         r.assigned_to_name || '',
         r.opened_at ? new Date(r.opened_at).toLocaleString('es-MX', { timeZone: tz }) : '',
         r.solved_at ? new Date(r.solved_at).toLocaleString('es-MX', { timeZone: tz }) : '',
-        r.created_by_name || ''
+        r.created_by_name || '',
+        r.urgency || ''
       ]);
     });
 
@@ -1306,6 +1432,15 @@ router.get('/exportDetailed', async (req, res) => {
       allParams
     );
 
+    // Derivar la urgencia para cada ticket seleccionado
+    tickets.forEach(t => {
+      try {
+        t.urgency = getUrgencyOrDefault(t.department, t.subject);
+      } catch (e) {
+        t.urgency = 'MEDIA';
+      }
+    });
+
     // Obtiene todas las transiciones para los tickets seleccionados en una sola consulta
     const ticketIds = tickets.map(t => t.id);
     let transitionsMap = {};
@@ -1365,6 +1500,8 @@ router.get('/exportDetailed', async (req, res) => {
       add(['Ticket','Teléfono', ticket.contact_phone || '', '']);
       add(['Ticket','Asignado a', ticket.assigned_to_name || '', '']);
       add(['Ticket','Estatus', ticket.status || '', '']);
+      // Añade la urgencia calculada
+      add(['Ticket','Urgencia', ticket.urgency || '', '']);
       // Formatear fechas a zona MX
       const fmt = (dt) => dt ? new Date(dt).toLocaleString('es-MX', { timeZone: tz }) : '';
       add(['Ticket','Abierto', fmt(ticket.opened_at), '']);
@@ -1485,17 +1622,20 @@ router.get('/exportChanges', async (req, res) => {
     allParams.push(...deptNames);
     const whereClause = whereParts.length ? ('WHERE ' + whereParts.join(' AND ')) : '';
 
-    // Consulta de cambios: combina tickets y transiciones cuyo note inicia con "Cambio:"
+    // Consulta de cambios: combina tickets y transiciones cuyo note inicia con "Cambio:".
+    // Incluye datos del reportante (nombre completo y nombre de usuario).
     const [rows] = await pool.query(
       `SELECT
-         t.id           AS ticket_id,
-         t.subject      AS subject,
-         d.name         AS department,
-         tt.created_at  AS change_date,
-         tt.note        AS note
+         t.id            AS ticket_id,
+         t.subject       AS subject,
+         d.name          AS department,
+         u.full_name     AS created_by_name,
+         u.username      AS created_by_username,
+         tt.created_at   AS change_date,
+         tt.note         AS note
        FROM tickets t
-       JOIN departments d       ON d.id = t.department_id
-       JOIN users u             ON u.id = t.created_by
+       JOIN departments d        ON d.id = t.department_id
+       JOIN users u              ON u.id = t.created_by
        JOIN ticket_transitions tt ON tt.ticket_id = t.id
        ${whereClause}
          AND tt.note LIKE 'Cambio:%'
@@ -1528,12 +1668,10 @@ router.get('/exportChanges', async (req, res) => {
     // Especificamos que sólo se consideran los departamentos Mantenimiento y Sistemas
     add(['Meta','Departamentos incluidos', deptNames.join(', '), '']);
     out.push('');
-    // Encabezado de datos
-    add(['Ticket','Departamento','Fecha','Cambio']);
+    // Encabezado de datos: ahora incluye reportante y su usuario
+    add(['Ticket','Departamento','Reportante','Usuario','Fecha','Cambio']);
     rows.forEach(r => {
-      // Convierte la fecha a formato local
       const dateStr = r.change_date ? new Date(r.change_date).toLocaleString('es-MX', { timeZone: tz }) : '';
-      // Elimina el prefijo "Cambio:" del note para mostrar sólo la descripción
       let cambio = r.note || '';
       if (cambio.toLowerCase().startsWith('cambio:')) {
         cambio = cambio.slice(7).trim();
@@ -1541,6 +1679,8 @@ router.get('/exportChanges', async (req, res) => {
       add([
         r.ticket_id,
         r.department || '',
+        r.created_by_name || '',
+        r.created_by_username || '',
         dateStr,
         cambio
       ]);
@@ -1739,6 +1879,15 @@ router.get('/requested/:id(\\d+)', async (req, res) => {
       { ticket: row, userId: viewerId }
     );
 
+    // Determinar si el actor puede agregar comentarios al historial
+    const allowedStatusesForComment = ['abierto','en_progreso','reabierto','solucionado'];
+    const stLower = String(row.status || '').toLowerCase();
+    const roleLowerCase = String(req.session.user?.role || '').toLowerCase();
+    const currentUserId2 = req.session.user?.id || null;
+    const isCreator2 = currentUserId2 && (row.created_by === currentUserId2);
+    const isAssignedAgent2 = currentUserId2 && (row.assigned_to === currentUserId2) && ['agent','agente'].includes(roleLowerCase);
+    const isAdminOrManager2 = ['admin','manager'].includes(roleLowerCase);
+    const canComment = allowedStatusesForComment.includes(stLower) && (isCreator2 || isAssignedAgent2 || isAdminOrManager2);
     res.render('ticket_show', {
       title: `Ticket #${row.id}`,
       t: row,
@@ -1751,7 +1900,9 @@ router.get('/requested/:id(\\d+)', async (req, res) => {
       canClose,
       canAccept,
       viewMode: 'requested',
-      roleMap
+      roleMap,
+      canComment,
+      creatorId: row.created_by
     });
   } catch (err) {
     console.error('GET /tickets/requested/:id', err);

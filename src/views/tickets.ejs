@@ -106,11 +106,12 @@
             Reportante <%= (sort==='reporter'||sort==='reportante') ? (dir==='asc'?'▲':'▼') : '' %>
           </a>
         </th>
+        <th>Urgencia</th>
       </tr>
     </thead>
     <tbody>
       <% if (!tickets || tickets.length === 0) { %>
-        <tr><td colspan="9" class="empty">Sin tickets</td></tr>
+        <tr><td colspan="10" class="empty">Sin tickets</td></tr>
       <% } else { tickets.forEach(t => { %>
         <tr data-status="<%= t.status %>">
           <td><a href="<%= listType === 'requested' ? ('/tickets/requested/' + t.id) : ('/tickets/' + t.id) %>"><%= t.id %></a></td>
@@ -124,6 +125,7 @@
           <td><%= new Date(t.opened_at).toLocaleString() %></td>
           <td><%= t.solved_at ? new Date(t.solved_at).toLocaleString() : '—' %></td>
           <td><%= t.created_by_name %></td>
+          <td><%= t.urgency || '' %></td>
         </tr>
       <% }) } %>
     </tbody>

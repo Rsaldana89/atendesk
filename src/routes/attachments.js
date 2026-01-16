@@ -52,11 +52,7 @@ router.post('/tickets/:id/attachments', async (req, res) => {
     return res.status(401).json({ error: 'No autenticado' });
   }
   const role = String(user.role || '').toLowerCase();
-  // Solo admin, manager o agentes pueden subir evidencias
-  if (!['admin', 'manager', 'agent', 'agente'].includes(role)) {
-    return res.status(403).json({ error: 'No autorizado' });
-  }
-  // Verificar que el usuario pueda acceder al ticket
+  // Verificar que el usuario tenga acceso al ticket
   try {
     const allowed = await canAccessTicket(pool, user, ticketId);
     if (!allowed) {
@@ -66,19 +62,30 @@ router.post('/tickets/:id/attachments', async (req, res) => {
     console.error('Error verificando acceso a ticket', accErr);
     return res.status(500).json({ error: 'Error interno' });
   }
-  // Verificar estado del ticket para permitir adjuntos
+  // Consultar información básica del ticket: estado y creador.  Esto se usa
+  // para determinar si el actor puede adjuntar evidencias (reportante o staff).
+  let tkInfo;
   try {
-    const [[tk]] = await pool.query('SELECT status FROM tickets WHERE id=?', [ticketId]);
+    const [[tk]] = await pool.query('SELECT status, created_by FROM tickets WHERE id=?', [ticketId]);
     if (!tk) {
       return res.status(404).json({ error: 'Ticket no encontrado' });
     }
-    const st = String(tk.status || '').toLowerCase();
-    if (['cerrado', 'cancelado'].includes(st)) {
-      return res.status(400).json({ error: 'El ticket está cerrado o cancelado' });
-    }
+    tkInfo = tk;
   } catch (stErr) {
-    console.error('Error consultando estado del ticket', stErr);
+    console.error('Error consultando ticket', stErr);
     return res.status(500).json({ error: 'Error interno' });
+  }
+  const st = String(tkInfo.status || '').toLowerCase();
+  if (['cerrado', 'cancelado'].includes(st)) {
+    return res.status(400).json({ error: 'El ticket está cerrado o cancelado' });
+  }
+  // Regla de autorización: los roles admin, manager y agentes siempre pueden
+  // agregar evidencias; los usuarios finales sólo pueden hacerlo si son los
+  // creadores del ticket.  Cualquier otro rol se rechaza.
+  const isStaff = ['admin','manager','agent','agente'].includes(role);
+  const isCreator = ['user','usuario'].includes(role) && tkInfo.created_by && (tkInfo.created_by === user.id);
+  if (!(isStaff || isCreator)) {
+    return res.status(403).json({ error: 'No autorizado' });
   }
   // Primero sube los archivos con multer, capturando errores
   try {

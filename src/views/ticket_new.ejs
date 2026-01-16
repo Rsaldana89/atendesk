@@ -242,11 +242,17 @@
 
           <div class="field">
             <label for="evidencias">Adjuntar imágenes (máx. 2)</label>
-            <input id="evidencias" name="evidencias" type="file"
-                  accept="image/jpeg,image/png" multiple>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input id="evidencias" name="evidencias" type="file"
+                    accept="image/jpeg,image/png" multiple>
+              <button type="button" id="paste-image-btn" class="btn btn-secondary" style="white-space:nowrap">
+                Pegar captura
+              </button>
+            </div>
             <div class="hint">
               Puedes adjuntar hasta <strong>2</strong> fotos JPG o PNG (máx <strong>5 MB</strong> cada una).
               Se optimizarán a JPG 800×600 al subirlas.
+              También puedes usar “Pegar captura” para agregar la imagen que tengas en tu portapapeles.
             </div>
             <div id="ev-errors" class="hint" style="color:#b91c1c;display:none"></div>
             <div id="ev-preview" class="ev-grid" style="margin-top:8px"></div>
@@ -339,6 +345,50 @@
       }
       if (evInput){
         evInput.addEventListener('change', ()=>{ renderPreview(evInput.files); updateCount(); });
+      }
+
+      // Permitir pegar una imagen del portapapeles mediante el botón "Pegar captura".
+      const pasteBtn = document.getElementById('paste-image-btn');
+      if (pasteBtn) {
+        pasteBtn.addEventListener('click', async function() {
+          // Verifica compatibilidad del navegador
+          if (!navigator.clipboard || !navigator.clipboard.read) {
+            alert('Tu navegador no soporta pegar imágenes desde el portapapeles. Usa el botón Adjuntar imágenes.');
+            return;
+          }
+          try {
+            const items = await navigator.clipboard.read();
+            let handled = false;
+            for (const item of items) {
+              for (const type of item.types) {
+                if (type.startsWith('image/')) {
+                  const blob = await item.getType(type);
+                  const ext = type.split('/')[1] || 'png';
+                  const fileName = 'captura.' + ext;
+                  const file = new File([blob], fileName, { type });
+                  // Combina archivos existentes con la nueva imagen
+                  const existing = evInput && evInput.files ? Array.from(evInput.files) : [];
+                  const combined = existing.concat(file).slice(0, MAX_FILES_EV);
+                  const dt = new DataTransfer();
+                  combined.forEach(f => dt.items.add(f));
+                  if (evInput) {
+                    evInput.files = dt.files;
+                    renderPreview(evInput.files);
+                  }
+                  handled = true;
+                  break;
+                }
+              }
+              if (handled) break;
+            }
+            if (!handled) {
+              alert('No se encontró ninguna imagen en el portapapeles.');
+            }
+          } catch (err) {
+            console.error(err);
+            alert('No se pudo acceder al portapapeles.');
+          }
+        });
       }
 
       // —— Reglas fallback por palabras/dep

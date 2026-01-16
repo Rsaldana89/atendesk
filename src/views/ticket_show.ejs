@@ -40,7 +40,11 @@
     const roleLower = (userRole || '').toLowerCase();
     const allowedRolesForEv = ['admin','manager','agent','agente'];
     const isFinalState = ['cerrado','cancelado'].includes((t.status || '').toLowerCase());
-    const canManageEv = (viewMode === 'attend') && allowedRolesForEv.includes(roleLower) && !isFinalState;
+    // Permitir gestión de evidencias cuando:
+    //  - el modo de vista es de atención y el rol es uno de los permitidos (admin, manager, agente), o
+    //  - el usuario es el creador del ticket (usuario/usuario) y el ticket no está en estado final.
+    const isCreatorForEv = (typeof creatorId !== 'undefined') && (typeof userId !== 'undefined') && (creatorId === userId) && ['usuario','user'].includes(roleLower);
+    const canManageEv = !isFinalState && (((viewMode === 'attend') && allowedRolesForEv.includes(roleLower)) || isCreatorForEv);
     const maxEv = 2;
     const currentEvCount = attachments ? attachments.length : 0;
   %>
@@ -78,6 +82,40 @@
 
   <!-- Historial de transiciones -->
   <%- include('partials/ticket-history', { history, statusLabels, roleMap }) %>
+
+  <!-- Formulario para agregar comentarios al historial -->
+  <% if (typeof canComment !== 'undefined' && canComment) { %>
+    <div style="margin-top:16px;">
+      <button type="button" class="btn btn-secondary" id="btn-show-comment-form">Agregar comentario</button>
+      <form id="comment-form" action="/tickets/<%= t.id %>/comment" method="post" style="margin-top:8px; display:none; max-width:650px;">
+        <textarea name="comment" rows="3" placeholder="Escribe tu comentario…" required style="width:100%;max-width:650px;"></textarea>
+        <div style="margin-top:6px; display:flex; gap:8px;">
+          <button type="submit" class="btn btn-primary">Guardar comentario</button>
+          <button type="button" class="btn btn-secondary" id="btn-cancel-comment-form">Cancelar</button>
+        </div>
+      </form>
+    </div>
+    <script>
+      // Mostrar/ocultar formulario de comentarios
+      (function(){
+        const showBtn = document.getElementById('btn-show-comment-form');
+        const form   = document.getElementById('comment-form');
+        const cancel = document.getElementById('btn-cancel-comment-form');
+        if (showBtn && form) {
+          showBtn.addEventListener('click', function(){
+            form.style.display = 'block';
+            showBtn.style.display = 'none';
+          });
+        }
+        if (cancel && form) {
+          cancel.addEventListener('click', function(){
+            form.style.display = 'none';
+            if (showBtn) showBtn.style.display = 'inline-block';
+          });
+        }
+      })();
+    </script>
+  <% } %>
 
   <!-- Controles de exportación / impresión -->
   <% // Mostrar botones de exportar e imprimir sólo para roles con permisos de gestión
