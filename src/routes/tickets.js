@@ -200,6 +200,7 @@ router.get('/', async (req, res) => {
       SELECT
         t.id,
         t.subject,
+        t.description,
         t.category AS categoria,
         d.name     AS department,
         t.status,
@@ -351,6 +352,7 @@ router.get('/requested', async (req, res) => {
       SELECT
         t.id,
         t.subject,
+        t.description,
         t.category AS categoria,
         d.name     AS department,
         t.status,

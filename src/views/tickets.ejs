@@ -62,7 +62,7 @@
   </div>
 
   <div class="table-responsive">
-  <table class="table sort">
+  <table class="table sort tickets-table">
     <thead>
       <tr>
         <th>
@@ -114,18 +114,27 @@
         <tr><td colspan="10" class="empty">Sin tickets</td></tr>
       <% } else { tickets.forEach(t => { %>
         <tr data-status="<%= t.status %>">
-          <td><a href="<%= listType === 'requested' ? ('/tickets/requested/' + t.id) : ('/tickets/' + t.id) %>"><%= t.id %></a></td>
-          <td><a href="<%= listType === 'requested' ? ('/tickets/requested/' + t.id) : ('/tickets/' + t.id) %>"><%= t.subject %></a></td>
-          <td><%= t.categoria %></td>
-          <td><%= t.department %></td>
-          <td>
+          <td data-label="ID">
+            <a href="<%= listType === 'requested' ? ('/tickets/requested/' + t.id) : ('/tickets/' + t.id) %>"><%= t.id %></a>
+          </td>
+          <td data-label="Asunto" class="ticket-subject-cell">
+            <span class="subject-text"><a href="<%= listType === 'requested' ? ('/tickets/requested/' + t.id) : ('/tickets/' + t.id) %>"><%= t.subject %></a></span>
+            <span class="subject-preview"><%= t.description || 'Sin descripción disponible' %></span>
+            <span class="ticket-row-actions" aria-label="Acciones rápidas del ticket">
+              <button type="button" class="info-btn" aria-label="Descripción" title="Ver descripción" data-description="<%= t.description || '' %>">ℹ️</button>
+              <button type="button" class="quick-view-btn" aria-label="Vista rápida" title="Vista rápida" data-ticket-id="<%= t.id %>">🔍</button>
+            </span>
+          </td>
+          <td data-label="Categoría"><%= t.categoria %></td>
+          <td data-label="Departamento"><%= t.department %></td>
+          <td data-label="Estatus">
             <span class="badge badge-<%= t.status %>"><%= String(t.status || '').replace('_',' ') %></span>
           </td>
-          <td><%= t.assigned_to_name || '—' %></td>
-          <td><%= new Date(t.opened_at).toLocaleString() %></td>
-          <td><%= t.solved_at ? new Date(t.solved_at).toLocaleString() : '—' %></td>
-          <td><%= t.created_by_name %></td>
-          <td><%= t.urgency || '' %></td>
+          <td data-label="Atendiendo"><%= t.assigned_to_name || '—' %></td>
+          <td data-label="Abierto"><%= new Date(t.opened_at).toLocaleString() %></td>
+          <td data-label="Solucionado"><%= t.solved_at ? new Date(t.solved_at).toLocaleString() : '—' %></td>
+          <td data-label="Reportante"><%= t.created_by_name %></td>
+          <td data-label="Urgencia"><%= t.urgency || '' %></td>
         </tr>
       <% }) } %>
     </tbody>
@@ -152,6 +161,8 @@
     filterRows();
   })();
   </script>
+
+  <script src="/js/tickets-enhanced.js"></script>
 
   <!-- Script para exportar e imprimir lista -->
   <script>
