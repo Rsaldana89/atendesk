@@ -106,21 +106,164 @@
       transform: translateY(-2px);
     }
 
-    /* === Anuncios === */
-    .announce-card {
-      background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-top: 2rem;
+    /* === Avisos importantes superiores === */
+    .ann-priority {
+      display: none;
+      margin: 2px 0 1.7rem;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
+      overflow: hidden;
     }
 
-    .announce-card h2 {
-      margin-top: 0;
-      font-size: 1.2rem;
+    .ann-priority.is-visible { display: block; }
+
+    .ann-priority-main {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 16px 18px;
     }
 
-    .announce-list {
+    .ann-bell {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      font-size: 1.45rem;
+      background: #0f172a;
+      color: #fff;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, .18);
+    }
+
+    .ann-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 3px;
+    }
+
+    .ann-kicker {
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 1.02rem;
+      letter-spacing: -.01em;
+    }
+
+    .ann-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 800;
+      font-size: .78rem;
+      border: 1px solid #dbeafe;
+    }
+
+    .ann-latest-title {
+      color: #1d4ed8;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .ann-title-list {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 7px 0 8px;
+    }
+
+    .ann-title-chip {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 750;
+      font-size: .84rem;
+      cursor: pointer;
+      max-width: 230px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+    .ann-title-chip:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1d4ed8;
+    }
+
+    .ann-title-chip.is-active {
+      background: #0f172a;
+      color: #fff;
+      border-color: #0f172a;
+    }
+
+    .ann-latest-meta {
+      color: #475569;
+      font-size: .88rem;
+      margin-bottom: 4px;
+    }
+
+    .ann-latest-body {
+      color: #334155;
+      margin: 0;
+      line-height: 1.42;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .ann-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .ann-toggle {
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      padding: 9px 13px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      font-size: .92rem;
+    }
+
+    .ann-toggle {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+      box-shadow: 0 6px 14px rgba(37,99,235,.16);
+    }
+
+    .ann-toggle:hover { background: #1d4ed8; }
+
+    .ann-panel {
+      display: none;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+      padding: 12px 16px 16px;
+    }
+
+    .ann-priority.is-open .ann-panel { display: block; }
+
+    .ann-list {
       list-style: none;
       margin: 0;
       padding: 0;
@@ -128,32 +271,141 @@
       gap: 10px;
     }
 
-    .announce-item {
+    .ann-selected-detail {
       background: #fff;
       border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 10px;
+      border-radius: 14px;
+      padding: 14px;
     }
 
-    .announce-item strong {
-      display: block;
-      margin-bottom: 4px;
+    .ann-selected-title {
       color: #0f172a;
+      font-weight: 850;
+      font-size: 1.02rem;
+      margin-bottom: 3px;
     }
 
-    .announce-meta {
-      font-size: .85rem;
+    .ann-selected-meta {
       color: #64748b;
-      margin-bottom: 4px;
+      font-size: .86rem;
+      margin-bottom: 10px;
     }
 
-    .announce-empty {
+    .ann-selected-body {
+      color: #1f2937;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .ann-item {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .ann-item summary {
+      cursor: pointer;
+      padding: 11px 12px;
+      list-style: none;
+    }
+
+    .ann-item summary::-webkit-details-marker { display: none; }
+
+    .ann-item-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .ann-item-title {
+      color: #0f172a;
+      font-weight: 800;
+    }
+
+    .ann-item-meta {
+      color: #64748b;
+      font-size: .84rem;
+      margin-top: 2px;
+    }
+
+    .ann-item-preview {
+      color: #334155;
+      font-size: .94rem;
+      margin-top: 6px;
+      line-height: 1.36;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .ann-expand-hint {
+      color: #2563eb;
+      font-weight: 800;
+      font-size: .82rem;
+      white-space: nowrap;
+    }
+
+    .ann-item[open] .ann-expand-hint { color: #64748b; }
+
+    .ann-item[open] .ann-item-preview { display: none; }
+
+    .ann-item-body {
+      border-top: 1px solid #e2e8f0;
+      padding: 11px 12px 13px;
+      color: #1f2937;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .ann-empty {
       color: #64748b;
       font-size: .95rem;
     }
 
     /* === Responsividad === */
     @media (max-width: 600px) {
+      .ann-priority {
+        margin-top: 0;
+        border-radius: 15px;
+      }
+      .ann-priority-main {
+        grid-template-columns: auto 1fr;
+        align-items: flex-start;
+        padding: 14px;
+      }
+      .ann-bell {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        font-size: 1.2rem;
+      }
+      .ann-actions {
+        grid-column: 1 / -1;
+        width: 100%;
+        justify-content: stretch;
+      }
+      .ann-toggle {
+        flex: 1 1 auto;
+        text-align: center;
+        padding: 9px 10px;
+      }
+      .ann-latest-body {
+        -webkit-line-clamp: 2;
+        font-size: .94rem;
+      }
+      .ann-title-list {
+        gap: 6px;
+      }
+      .ann-title-chip {
+        max-width: 100%;
+        font-size: .8rem;
+        padding: 6px 9px;
+      }
       h2 { font-size: 1.3rem; text-align: center; }
       p { text-align: center; font-size: .95rem; }
       .department-card {
@@ -189,6 +441,30 @@
 </head>
 <body>
   <main class="container">
+    <section id="ann-priority" class="ann-priority" aria-live="polite">
+      <div class="ann-priority-main">
+        <div class="ann-bell" aria-hidden="true">🔔</div>
+        <div>
+          <div class="ann-title-row">
+            <span class="ann-kicker">Anuncios vigentes</span>
+            <span id="ann-count" class="ann-count">0</span>
+          </div>
+          <div id="ann-title-list" class="ann-title-list" aria-label="Anuncios vigentes"></div>
+          <div id="ann-latest-title" class="ann-latest-title"></div>
+          <div id="ann-latest-meta" class="ann-latest-meta"></div>
+          <p id="ann-latest-body" class="ann-latest-body"></p>
+        </div>
+        <div class="ann-actions">
+          <button id="ann-toggle" type="button" class="ann-toggle" aria-expanded="false">Ver anuncio</button>
+        </div>
+      </div>
+      <div id="ann-panel" class="ann-panel">
+        <ul id="ann-list" class="ann-list">
+          <li class="ann-empty">Cargando anuncios…</li>
+        </ul>
+      </div>
+    </section>
+
     <h2>Selecciona un departamento</h2>
     <p>Elige el área para levantar ticket.</p>
 
@@ -222,40 +498,118 @@
       </a>
     </div>
 
-    <section class="announce-card">
-      <h2>📢 Anuncios</h2>
-      <ul id="ann-list" class="announce-list">
-        <li class="announce-empty">Cargando anuncios…</li>
-      </ul>
-    </section>
   </main>
 
   <script>
   (async () => {
+    const box = document.getElementById('ann-priority');
+    const ul = document.getElementById('ann-list');
+    const toggle = document.getElementById('ann-toggle');
+    const titleList = document.getElementById('ann-title-list');
+    let announcements = [];
+    let selectedIndex = 0;
+
+    function normalizeText(value) {
+      return String(value || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value || '';
+    }
+
+    function metaText(a) {
+      return `${a.dept === 'ALL' ? 'Todos' : a.dept} · ${a.created_at || ''}`;
+    }
+
+    function renderSelected() {
+      const current = announcements[selectedIndex];
+      if (!current) return;
+
+      setText('ann-latest-title', current.title || 'Anuncio');
+      setText('ann-latest-meta', metaText(current));
+      setText('ann-latest-body', normalizeText(current.body));
+
+      titleList.querySelectorAll('.ann-title-chip').forEach((btn, index) => {
+        btn.classList.toggle('is-active', index === selectedIndex);
+        btn.setAttribute('aria-pressed', String(index === selectedIndex));
+      });
+
+      renderDetail(current);
+    }
+
+    function renderDetail(a) {
+      ul.innerHTML = '';
+      const li = document.createElement('li');
+      const wrap = document.createElement('article');
+      wrap.className = 'ann-selected-detail';
+
+      const title = document.createElement('div');
+      title.className = 'ann-selected-title';
+      title.textContent = a.title || 'Anuncio';
+
+      const meta = document.createElement('div');
+      meta.className = 'ann-selected-meta';
+      meta.textContent = metaText(a);
+
+      const body = document.createElement('div');
+      body.className = 'ann-selected-body';
+      body.textContent = a.body || '';
+
+      wrap.appendChild(title);
+      wrap.appendChild(meta);
+      wrap.appendChild(body);
+      li.appendChild(wrap);
+      ul.appendChild(li);
+    }
+
+    function renderTitleButtons() {
+      titleList.innerHTML = '';
+      announcements.forEach((a, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ann-title-chip';
+        btn.textContent = a.title || `Anuncio ${index + 1}`;
+        btn.setAttribute('aria-pressed', 'false');
+        btn.title = a.title || `Anuncio ${index + 1}`;
+        btn.addEventListener('click', () => {
+          selectedIndex = index;
+          renderSelected();
+          if (box.classList.contains('is-open')) {
+            document.getElementById('ann-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        });
+        titleList.appendChild(btn);
+      });
+    }
+
     try {
       const res = await fetch('/api/announcements?limit=5', { credentials: 'include' });
       const data = res.ok ? await res.json() : [];
-      const ul = document.getElementById('ann-list');
-      ul.innerHTML = '';
+      announcements = Array.isArray(data) ? data : [];
 
-      if (!data.length) {
-        ul.innerHTML = '<li class="announce-empty">No hay anuncios por ahora.</li>';
+      if (!announcements.length) {
+        box.classList.remove('is-visible');
         return;
       }
 
-      data.forEach(a => {
-        const li = document.createElement('li');
-        li.className = 'announce-item';
-        li.innerHTML = `
-          <strong>${a.title}</strong>
-          <div class="announce-meta">${a.dept === 'ALL' ? 'Todos' : a.dept} · ${a.created_at}</div>
-          <div>${a.body}</div>
-        `;
-        ul.appendChild(li);
+      box.classList.add('is-visible');
+      setText('ann-count', announcements.length);
+      renderTitleButtons();
+      renderSelected();
+
+      toggle.addEventListener('click', () => {
+        const isOpen = box.classList.toggle('is-open');
+        toggle.setAttribute('aria-expanded', String(isOpen));
+        toggle.textContent = isOpen ? 'Ocultar anuncio' : 'Ver anuncio';
       });
     } catch (err) {
-      document.getElementById('ann-list').innerHTML =
-        '<li class="announce-empty">No se pudieron cargar los anuncios.</li>';
+      box.classList.add('is-visible');
+      ul.innerHTML = '<li class="ann-empty">No se pudieron cargar los anuncios.</li>';
+      setText('ann-count', '!');
+      setText('ann-latest-title', 'No se pudieron cargar los anuncios');
+      setText('ann-latest-meta', 'Intenta actualizar la página.');
+      setText('ann-latest-body', '');
       console.error(err);
     }
   })();
