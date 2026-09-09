@@ -192,6 +192,10 @@ window.TICKETS_CATALOGO = {
     { subject: "Bloqueo de acceso a TalentoCoronel", category: "PLATAFORMAS", urgency: "BAJA" },
     { subject: "Bloqueo de acceso a Fondo de Ahorro BBVA", category: "PLATAFORMAS", urgency: "BAJA" },
 
+    // Checador / lector de huella
+    { subject: "Alta de huella", category: "CHECADOR", urgency: "MEDIA" },
+    { subject: "Cambio de huella", category: "CHECADOR", urgency: "ALTA" },
+
     { subject: "Otros", category: "OTROS CH", urgency: "MEDIA" }
   ],
 
@@ -252,6 +256,10 @@ window.TICKETS_CATALOGO = {
     // Personal
     { subject: "Alta de personal", category: "ALTAS", urgency: "ALTA" },
     { subject: "Baja de personal", category: "BAJAS", urgency: "ALTA" },
+
+    // Checador / lector de huella
+    { subject: "No puedo checar", category: "CHECADOR", urgency: "ALTA" },
+    { subject: "Lector dañado", category: "CHECADOR", urgency: "ALTA" },
 
     { subject: "Otros", category: "OTROS SISTEMAS", urgency: "BAJA" }
   ],
