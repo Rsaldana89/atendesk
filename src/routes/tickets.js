@@ -214,7 +214,7 @@ router.get('/', async (req, res) => {
       LEFT JOIN users a  ON a.id = t.assigned_to
       WHERE ${whereParts.join(' AND ')}
       ORDER BY ${orderBy} ${direction}
-      LIMIT 500
+      LIMIT 1500
     `;
 
     const [rows] = await pool.query(sql, allParams);
@@ -366,7 +366,7 @@ router.get('/requested', async (req, res) => {
       LEFT JOIN users a  ON a.id = t.assigned_to
       WHERE ${whereParts.join(' AND ')}
       ORDER BY ${orderBy} ${direction}
-      LIMIT 500
+      LIMIT 1500
     `;
 
     const [rows] = await pool.query(sql, allParams);
