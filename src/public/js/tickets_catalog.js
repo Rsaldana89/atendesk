@@ -258,8 +258,10 @@ window.TICKETS_CATALOGO = {
     { subject: "Baja de personal", category: "BAJAS", urgency: "ALTA" },
 
     // Checador / lector de huella
+    { subject: "Alta de huella", category: "CHECADOR", urgency: "MEDIA" },
     { subject: "No puedo checar", category: "CHECADOR", urgency: "ALTA" },
     { subject: "Lector dañado", category: "CHECADOR", urgency: "ALTA" },
+    
 
     { subject: "Otros", category: "OTROS SISTEMAS", urgency: "BAJA" }
   ],
