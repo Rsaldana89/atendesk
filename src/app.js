@@ -21,6 +21,11 @@ const adminUsersRoutes  = require('./routes/admin/users');
 
 // Rutas de eventos SSE para notificaciones en tiempo real
 const eventsRoutes      = require('./routes/events');
+const ticketNotificationRoutes = require('./routes/notifications');
+const announcementImageRoutes = require('./routes/announcementImages');
+const {
+  uploadAnnouncementImages, processAnnouncementImages, attachAnnouncementImageLists
+} = require('./lib/announcementImages');
 
 const app = express();
 
@@ -78,6 +83,9 @@ app.use('/tickets',   requireAuth, ticketRoutes);
 // autenticación para suscribirse a los eventos.  Las reglas de
 // visibilidad se aplican en el propio módulo events.
 app.use('/events', requireAuth, eventsRoutes.router || eventsRoutes);
+// La campana es independiente de la bandeja de tickets existente.
+app.use('/api/ticket-notifications', requireAuth, ticketNotificationRoutes);
+app.use('/api/announcements', requireAuth, announcementImageRoutes);
 
 // Sección de anuncios.  Todos los usuarios logueados pueden acceder a esta
 // página para consultar comunicados.  Solamente administradores y managers
@@ -854,6 +862,8 @@ app.get('/api/announcements', requireAuth, async (req, res) => {
       [...params, limit]
     );
 
+    // Una consulta adicional para metadatos; nunca cargar blobs en el listado.
+    await attachAnnouncementImageLists(pool, rows);
     res.json(rows);
   } catch (e) {
     console.error('GET /api/announcements', e);
@@ -863,7 +873,7 @@ app.get('/api/announcements', requireAuth, async (req, res) => {
 
 // POST anuncio
 // Crear anuncio
-app.post('/api/announcements', requireAuth, async (req, res) => {
+app.post('/api/announcements', requireAuth, uploadAnnouncementImages, async (req, res) => {
   try {
     const user = req.session.user || {};
     // Solo administradores y managers pueden crear anuncios
@@ -900,13 +910,42 @@ app.post('/api/announcements', requireAuth, async (req, res) => {
         return res.status(500).json({ error: 'Server error' });
       }
     }
-    // Inserta el anuncio
-    await pool.query(
-      `INSERT INTO announcements (dept, title, body, until_date, created_by)
-       VALUES (?,?,?,?,?)`,
-      [dept, title, body, until_date || null, user.id || 0]
-    );
-    res.json({ ok: true });
+    // Procesa las imagenes ANTES de iniciar la transaccion. Un archivo
+    // invalido rechaza toda la publicacion (sin anuncios ni fotos parciales).
+    let images;
+    try {
+      images = await processAnnouncementImages(req.files || []);
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Imagen invalida' });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [inserted] = await conn.query(
+        `INSERT INTO announcements (dept, title, body, until_date, created_by)
+         VALUES (?,?,?,?,?)`,
+        [dept, title, body, until_date || null, user.id || 0]
+      );
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        await conn.query(
+          `INSERT INTO announcement_attachments
+             (announcement_id, seq, original_name, mime_type, data, thumb,
+              size_bytes, width, height, uploaded_by)
+           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+          [inserted.insertId, i + 1, img.original_name, img.mime, img.data, img.thumb,
+           img.size, img.width, img.height, user.id]
+        );
+      }
+      await conn.commit();
+      return res.json({ ok: true, id: inserted.insertId, images: images.length });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   } catch (e) {
     console.error('POST /api/announcements', e);
     res.status(500).json({ error: 'Server error' });
@@ -967,10 +1006,32 @@ app.delete('/api/announcements/:id', requireAuth, async (req, res) => {
         return res.status(403).json({ error: 'No autorizado a eliminar este anuncio' });
       }
     }
-    // Procede a eliminar
-    const [result] = await pool.query(`DELETE FROM announcements WHERE id = ?`, [id]);
-    if (result.affectedRows === 0) return res.status(404).json({ error: 'Anuncio no encontrado' });
-    res.json({ ok: true });
+    // Eliminar anuncio y fotos dentro de una misma transaccion, conservando
+    // la politica de permisos y el borrado ya existente de comentarios.
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      try {
+        await conn.query('DELETE FROM announcement_attachments WHERE announcement_id=?', [id]);
+      } catch (err) {
+        // Conserva el DELETE de anuncios antiguos si el despliegue fue
+        // realizado antes de aplicar las nuevas tablas (modo compatibilidad).
+        if (err.code !== 'ER_NO_SUCH_TABLE') throw err;
+        console.warn('[anuncios 1.5] Falta announcement_attachments; revisar migracion SQL.');
+      }
+      const [result] = await conn.query('DELETE FROM announcements WHERE id=?', [id]);
+      if (result.affectedRows === 0) {
+        await conn.rollback();
+        return res.status(404).json({ error: 'Anuncio no encontrado' });
+      }
+      await conn.commit();
+      return res.json({ ok: true });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   } catch (e) {
     console.error('DELETE /api/announcements/:id', e);
     res.status(500).json({ error: 'Server error' });

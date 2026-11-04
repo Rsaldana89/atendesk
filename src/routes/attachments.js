@@ -3,7 +3,8 @@ const express = require('express');
 const multer  = require('multer');
 const crypto  = require('crypto');
 const { pool } = require('../db');
-const { canAccessTicket } = require('../lib/ticketAccess');
+const { canAccessTicket, canReadTicket } = require('../lib/ticketAccess');
+const { publishTicketActivity } = require('../lib/ticketNotifications');
 
 const router = express.Router();
 
@@ -115,6 +116,7 @@ router.post('/tickets/:id/attachments', async (req, res) => {
       return res.status(400).json({ error: 'Ya hay 2 adjuntos en este ticket' });
     }
     let nextSeq = cnt + 1;
+    let added = 0;
     for (const f of (req.files || [])) {
       if (nextSeq > 2) break;
       // Normaliza si hay normalizador, si no, pasa tal cual
@@ -137,6 +139,14 @@ router.post('/tickets/:id/attachments', async (req, res) => {
          img.data, img.thumb, img.size, img.width, img.height, checksum, userId]
       );
       nextSeq++;
+      added++;
+    }
+    if (added) {
+      try {
+        await publishTicketActivity(pool, { ticketId, actorId: userId, eventType: 'evidence' });
+      } catch (notifyError) {
+        console.warn('Evidencia guardada; fallo la campana:', notifyError.message);
+      }
     }
     return res.json({ ok: true });
   } catch (e) {
@@ -148,13 +158,22 @@ router.post('/tickets/:id/attachments', async (req, res) => {
 /* Miniatura */
 router.get('/attachments/:attId/thumb', async (req, res) => {
   try {
+    const [[attachment]] = await pool.query(
+      'SELECT ticket_id FROM ticket_attachments WHERE id=?',
+      [req.params.attId]
+    );
+    if (!attachment) return res.status(404).send('No encontrado');
+    if (!(await canReadTicket(pool, req.session?.user, attachment.ticket_id))) {
+      return res.status(403).send('No autorizado');
+    }
     const [rows] = await pool.query(
       'SELECT mime_type, thumb FROM ticket_attachments WHERE id=?',
       [req.params.attId]
     );
     if (!rows.length || !rows[0].thumb) return res.status(404).send('No encontrado');
     res.set('Content-Type', rows[0].mime_type || 'application/octet-stream');
-    res.set('Cache-Control', 'private, max-age=600');
+    res.set('Cache-Control', 'private, no-store');
+    res.set('X-Content-Type-Options', 'nosniff');
     res.end(rows[0].thumb);
   } catch (e) {
     console.error('GET /attachments/:attId/thumb', e);
@@ -165,13 +184,22 @@ router.get('/attachments/:attId/thumb', async (req, res) => {
 /* Imagen completa */
 router.get('/attachments/:attId/raw', async (req, res) => {
   try {
+    const [[attachment]] = await pool.query(
+      'SELECT ticket_id FROM ticket_attachments WHERE id=?',
+      [req.params.attId]
+    );
+    if (!attachment) return res.status(404).send('No encontrado');
+    if (!(await canReadTicket(pool, req.session?.user, attachment.ticket_id))) {
+      return res.status(403).send('No autorizado');
+    }
     const [rows] = await pool.query(
       'SELECT mime_type, data FROM ticket_attachments WHERE id=?',
       [req.params.attId]
     );
     if (!rows.length) return res.status(404).send('No encontrado');
     res.set('Content-Type', rows[0].mime_type || 'application/octet-stream');
-    res.set('Cache-Control', 'private, max-age=600');
+    res.set('Cache-Control', 'private, no-store');
+    res.set('X-Content-Type-Options', 'nosniff');
     res.end(rows[0].data);
   } catch (e) {
     console.error('GET /attachments/:attId/raw', e);

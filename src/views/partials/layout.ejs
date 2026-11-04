@@ -46,6 +46,28 @@
     .menu-toggle:hover{ background:var(--chip-hover); border-color:#475569; }
     .menu-icon{ width:20px; height:20px; display:inline-block; }
 
+    /* Campana siempre visible (tambien en movil con menu cerrado). */
+    .header-controls{ display:flex; align-items:center; gap:9px; margin-left:auto; }
+    .ticket-notify-holder{ position:relative; }
+    .ticket-notify-button{ display:flex; align-items:center; gap:5px; border:1px solid #334155;
+      background:#111827; color:#fff; border-radius:999px; padding:7px 10px; cursor:pointer; }
+    .ticket-notify-button:hover{ background:#1e293b; }
+    .ticket-notify-badge{ background:#dc2626; color:white; min-width:19px; height:19px;
+      line-height:19px; text-align:center; border-radius:11px; font-size:11px; font-weight:800; padding:0 3px; }
+    .ticket-notify-badge[hidden], .ticket-notify-panel[hidden]{ display:none !important; }
+    .ticket-notify-panel{ position:absolute; top:calc(100% + 10px); right:0; width:min(385px, calc(100vw - 24px));
+      max-height:65vh; overflow-y:auto; background:#fff; color:#0f172a; border:1px solid #cbd5e1;
+      border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.23); z-index:1200; }
+    .ticket-notify-panel h3{ margin:0; padding:12px 14px; font-size:15px; border-bottom:1px solid #e2e8f0; }
+    .ticket-notify-item{ display:flex; flex-direction:column; gap:4px; color:#334155; text-decoration:none;
+      border-bottom:1px solid #e2e8f0; padding:11px 14px; font-size:13px; }
+    .ticket-notify-item:hover{ background:#eff6ff; }
+    .ticket-notify-item.is-unread{ background:#eff6ff; border-left:3px solid #2563eb; }
+    .ticket-notify-item strong{ color:#0f172a; font-size:13px; }
+    .ticket-notify-item span{ overflow-wrap:anywhere; }
+    .ticket-notify-item small{ color:#64748b; font-size:11px; }
+    .ticket-notify-empty{ padding:12px 14px; margin:0; font-size:13px; color:#475569; }
+
     /* ===== Panel de navegación (colapsable en móvil) ===== */
     .nav-panel{ display:none; border-top:1px solid var(--nav-bd); }
     .nav-panel.open{ display:block; }
@@ -157,13 +179,28 @@
     <div class="bar">
       <div class="brand">Soporte360 CHC</div>
 
-      <!-- Botón hamburguesa (visible en móvil) -->
-      <button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="primary-nav">
-        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 6h18M3 12h18M3 18h18"/>
-        </svg>
-        <span class="sr-only">Abrir menú</span>
-      </button>
+      <div class="header-controls">
+        <% if (user) { %>
+        <div class="ticket-notify-holder" id="ticket-notify-holder">
+          <button type="button" class="ticket-notify-button" id="ticket-notify-button"
+            aria-controls="ticket-notify-panel" aria-expanded="false" aria-label="Notificaciones de tickets">
+            <span aria-hidden="true">🔔</span>
+            <span class="ticket-notify-badge" id="ticket-notify-badge" hidden>0</span>
+          </button>
+          <section class="ticket-notify-panel" id="ticket-notify-panel" hidden aria-label="Notificaciones">
+            <h3>Actualizaciones de tus tickets</h3>
+            <div id="ticket-notify-content"><p class="ticket-notify-empty">Cargando…</p></div>
+          </section>
+        </div>
+        <% } %>
+        <!-- Botón hamburguesa (visible en móvil) -->
+        <button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="primary-nav">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+          <span class="sr-only">Abrir menú</span>
+        </button>
+      </div>
     </div>
 
     <!-- NAV: colapsable en móvil, inline en desktop -->
@@ -308,7 +345,7 @@
       <span class="close" aria-label="Cerrar">&times;</span>
       <h3 id="about-title">Soporte360 CHC</h3>
       <!-- Actualiza la versión en el modal -->
-      <p><strong>Versión:</strong> 0.94 Beta</p>
+      <p><strong>Versión:</strong> 1.5.0 RC (pruebas)</p>
       <p>Desarrollado por <strong>Rubén Saldaña Alvarado</strong></p>
       <p>para <strong>Cremería Hermanos Coronel</strong></p>
     </div>
@@ -365,8 +402,8 @@
       const isLoggedIn = Boolean('<%= user ? '1' : '' %>');
       if (!isLoggedIn) return;
       const role = (userRole || '').toLowerCase();
-      // Sólo agentes, managers y administradores reciben notificaciones
-      if (!['admin','manager','agent'].includes(role)) return;
+      // Todas las cuentas reciben novedades persistentes de sus tickets.
+      // El aviso de 'nuevo ticket' en navegador sigue exclusivo del personal.
       if (!('EventSource' in window)) return;
       try {
         const evtSource = new EventSource('/events');
@@ -374,8 +411,11 @@
           if (!ev.data) return;
           let data;
           try { data = JSON.parse(ev.data); } catch (e) { return; }
-          if (data && data.type === 'newTicket') {
+          if (data && data.type === 'newTicket' && ['admin','manager','agent'].includes(role)) {
             showTicketNotification(data);
+          }
+          if (data && data.type === 'ticketActivity') {
+            window.dispatchEvent(new Event('soporte360:ticketActivity'));
           }
         };
       } catch (err) {
@@ -421,5 +461,6 @@
       }
     })();
   </script>
+  <% if (user) { %><script src="/js/ticket-notifications.js" defer></script><% } %>
 </body>
 </html>

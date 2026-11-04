@@ -1,0 +1,7 @@
+-- NO EJECUTAR DURANTE UN ROLLBACK NORMAL.
+-- Para regresar a la version anterior, basta restaurar el codigo anterior:
+-- estas dos tablas adicionales son compatibles y pueden permanecer sin uso.
+-- ADVERTENCIA: Las siguientes sentencias ELIMINAN datos y estan comentadas.
+-- Ejecutar solamente con respaldo confirmado y autorizacion expresa.
+-- DROP TABLE IF EXISTS announcement_attachments;
+-- DROP TABLE IF EXISTS ticket_notifications;

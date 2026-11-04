@@ -1,11 +1,12 @@
 {
   "name": "chc-helpdesk-minimal",
-  "version": "0.94.0",
-  "description": "Sistema minimal de tickets (AtenDesk) - Express + MySQL (versión 0.94 beta)",
+  "version": "1.5.0-rc.1",
+  "description": "Soporte360 CHC - mejoras de evidencias, anuncios con imagenes y campana interna (1.5 RC)",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "test": "node --test pruebas/*.test.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

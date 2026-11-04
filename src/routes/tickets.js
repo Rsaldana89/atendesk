@@ -20,6 +20,9 @@ const { notifyByConfig } = require('../lib/notifications');
 
 // SSE: función para notificar a clientes en tiempo real cuando se crea un ticket.
 const { notifyNewTicket } = require('./events');
+const {
+  publishTicketActivity, markTicketNotificationsRead
+} = require('../lib/ticketNotifications');
 // Import urgency helper to derive ticket urgency at runtime.  Urgency is not stored
 // in the database, so we compute it from the catalog using department and subject.
 const { getUrgencyOrDefault } = require('../lib/urgency');
@@ -740,6 +743,11 @@ router.get('/:id(\\d+)', async (req, res) => {
     const isAdminOrManager = ['admin','manager'].includes(roleLowerCase);
     const canComment = allowedStatusesForComment.includes(stLower) && (isCreator || isAssignedAgent || isAdminOrManager);
 
+    // Entrar al detalle marca solo las novedades de ESTE ticket como revisadas.
+    // No alterar el flujo de tickets si la campana no estuviera disponible.
+    try { await markTicketNotificationsRead(pool, req.session.user?.id, id); }
+    catch (notifyError) { console.warn('No se pudieron marcar notificaciones:', notifyError.message); }
+
     res.render('ticket_show', {
       title: `Ticket #${row.id}`,
       t: row,
@@ -875,6 +883,12 @@ router.post('/:id/transition', async (req, res) => {
       );
 
       await conn.commit();
+      // No esperar otra conexion MySQL mientras esta transaccion aun mantiene
+      // una conexion del pool: la notificacion es independiente del cambio.
+      setImmediate(() => {
+        publishTicketActivity(pool, { ticketId, actorId: user.id, eventType: 'status' })
+          .catch(err => console.warn('Transicion confirmada; fallo la campana:', err.message));
+      });
       res.json({ ok: true, to_status: to, label: LABELS[to] });
 
       // Post: notificar si fue cerrado
@@ -986,6 +1000,11 @@ router.post('/:id(\\d+)/comment', async (req, res) => {
       return res.status(500).send('Error guardando comentario');
     } finally {
       conn.release();
+    }
+    try {
+      await publishTicketActivity(pool, { ticketId, actorId: user.id, eventType: 'comment' });
+    } catch (notifyError) {
+      console.warn('Comentario guardado; fallo la campana:', notifyError.message);
     }
     // Redirige de vuelta a la página del ticket.  Si la vista original es
     // /tickets/requested/:id, el frontend puede redirigir igualmente a la ruta
@@ -1787,6 +1806,10 @@ router.post('/:id/assign', async (req, res) => {
       );
 
       await conn.commit();
+      setImmediate(() => {
+        publishTicketActivity(pool, { ticketId, actorId: user.id, eventType: 'assignment' })
+          .catch(err => console.warn('Asignacion confirmada; fallo la campana:', err.message));
+      });
 
       const wantsJson = req.xhr ||
                         (req.headers.accept && req.headers.accept.includes('application/json'));
@@ -1890,6 +1913,11 @@ router.get('/requested/:id(\\d+)', async (req, res) => {
     const isAssignedAgent2 = currentUserId2 && (row.assigned_to === currentUserId2) && ['agent','agente'].includes(roleLowerCase);
     const isAdminOrManager2 = ['admin','manager'].includes(roleLowerCase);
     const canComment = allowedStatusesForComment.includes(stLower) && (isCreator2 || isAssignedAgent2 || isAdminOrManager2);
+    // Entrar al detalle marca solo las novedades de ESTE ticket como revisadas.
+    // No alterar el flujo de tickets si la campana no estuviera disponible.
+    try { await markTicketNotificationsRead(pool, req.session.user?.id, id); }
+    catch (notifyError) { console.warn('No se pudieron marcar notificaciones:', notifyError.message); }
+
     res.render('ticket_show', {
       title: `Ticket #${row.id}`,
       t: row,

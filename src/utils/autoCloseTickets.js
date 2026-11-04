@@ -17,6 +17,7 @@
 
 const { pool } = require('../db');
 const { STATES, ROLES } = require('../lib/ticketStatus');
+const { publishTicketActivity } = require('../lib/ticketNotifications');
 
 // Obtiene la frecuencia en horas desde la variable de entorno.
 const freq = Math.max(parseInt(process.env.AUTO_CLOSE_FREQUENCY_HOURS || '12', 10) || 12, 1);
@@ -76,6 +77,10 @@ async function autoCloseTickets() {
           ]
         );
         await conn.commit();
+        setImmediate(() => {
+          publishTicketActivity(pool, { ticketId, actorId: null, eventType: 'status' })
+            .catch(err => console.warn('Autocierre confirmado; fallo la campana:', err.message));
+        });
         console.log(`Ticket #${ticketId} cerrado automáticamente por haber estado solucionado más de 48 horas`);
       } catch (err) {
         await conn.rollback();

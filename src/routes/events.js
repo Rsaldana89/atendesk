@@ -57,8 +57,12 @@ router.get('/', async (req, res) => {
   // Registra cliente
   const client = { res, userId: user.id, role: user.role, deptIds };
   clients.add(client);
-  // Elimina cliente al cerrar conexión
+  // Evita conexiones SSE inactivas tras proxies y libera recursos al cerrar.
+  const heartbeat = setInterval(() => {
+    try { res.write(': ping\n\n'); } catch (_) { clearInterval(heartbeat); clients.delete(client); }
+  }, 25000);
   req.on('close', () => {
+    clearInterval(heartbeat);
     clients.delete(client);
   });
 });
@@ -97,4 +101,13 @@ function notifyNewTicket(ticket) {
   }
 }
 
-module.exports = { router, notifyNewTicket };
+// Evento dirigido a un usuario concreto: el cliente vuelve a consultar su campana.
+function notifyTicketActivity(userId, ticketId) {
+  const data = `data: ${JSON.stringify({ type: 'ticketActivity', ticketId })}\n\n`;
+  for (const client of clients) {
+    if (Number(client.userId) !== Number(userId)) continue;
+    try { client.res.write(data); } catch (_) { clients.delete(client); }
+  }
+}
+
+module.exports = { router, notifyNewTicket, notifyTicketActivity };

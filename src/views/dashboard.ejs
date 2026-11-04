@@ -500,6 +500,7 @@
 
   </main>
 
+  <script src="/js/announcement-gallery.js"></script>
   <script>
   (async () => {
     const box = document.getElementById('ann-priority');
@@ -559,6 +560,9 @@
       wrap.appendChild(title);
       wrap.appendChild(meta);
       wrap.appendChild(body);
+      if (window.SoporteAnnouncementGallery && Array.isArray(a.images) && a.images.length) {
+        wrap.appendChild(window.SoporteAnnouncementGallery.createGallery(a.images));
+      }
       li.appendChild(wrap);
       ul.appendChild(li);
     }
