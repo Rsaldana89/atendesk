@@ -128,31 +128,34 @@ window.TICKETS_CATALOGO = {
 
     // No surte proveedor directo (por proveedor)
     { subject: "No surte proveedor directo Alpura", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Imperiales", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Embotelladora AGA", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Sabritas", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
     { subject: "No surte proveedor directo Araceli", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Gamesa", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Leche Qro", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Kelloggs", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Ochoa", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Bachoco", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Frijoles Puercos", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Huevo Santiago", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Peñafiel", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Santo Sano", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Trapeador", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Coca", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "No surte proveedor directo Pepsi", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
     { subject: "No surte proveedor directo Bimbo", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
     { subject: "No surte proveedor directo Capistrano", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Coca", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Aga", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Frijoles Puercos", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Gamesa", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
     { subject: "No surte proveedor directo Huevo Rojo", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Huevo San Juan", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Huevo Santiago", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Huevo Guadalupe", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Imperiales", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Kellogs", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Leche Querétaro", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Mondelez", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Ochoa", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Peñafiel", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Pepsi", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Sabritas", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Barcel", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Santo Sano", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Trapeador", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Tia Creta", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo La Quinta", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Pedro Zamora", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
+    { subject: "No surte proveedor directo Cueros", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
 
-    // Genéricos para proveedor directo
-    { subject: "No surte proveedor directo (varios)", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "ALTA" },
-    { subject: "Otros (Proveedores directos)", category: "NO SURTE PROVEEDOR DIRECTO", urgency: "BAJA" },
-
-    // Devoluciones
+        // Devoluciones
     { subject: "Devolucion de cliente en sucursal", category: "DEVOLUCIONES", urgency: "MEDIA" },
     { subject: "Otros (Devoluciones)", category: "DEVOLUCIONES", urgency: "BAJA" },
 
@@ -165,11 +168,11 @@ window.TICKETS_CATALOGO = {
     // Precios
     { subject: "Dudas de promociones", category: "PRECIOS", urgency: "BAJA" },
     { subject: "Dudas de cambios de precios", category: "PRECIOS", urgency: "BAJA" },
+    { subject: "Problemas de Precios", category: "PRECIOS", urgency: "MEDIA" },
     { subject: "Otros (Precios)", category: "PRECIOS", urgency: "BAJA" },
 
     // Proveedores
     { subject: "Proveedor aparece como inactivo", category: "PROVEEDORES", urgency: "MEDIA" },
-    { subject: "Otros (Proveedores)", category: "PROVEEDORES", urgency: "BAJA" },
 
     // Otros
     { subject: "Otros", category: "OTROS COMPRAS", urgency: "BAJA" }
